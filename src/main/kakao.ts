@@ -5,7 +5,10 @@ import fs from 'fs'
 const isWindows = process.platform === 'win32'
 const SW_RESTORE = 9
 
-/* ── ffi-rs 초기화 ──────────────────────────────── */
+// KakaoTalk 채팅방 창 클래스명 후보 (우선순위 순)
+const KAKAO_CHAT_CLASSES = ['EVA_ChildWindow', 'EVA_Window', 'EVA_Window_Dblclk']
+
+/* ── ffi-rs 초기화 ── */
 let libReady = false
 
 function ensureLib(): boolean {
@@ -21,7 +24,32 @@ function ensureLib(): boolean {
   }
 }
 
-/* ── Windows API 래퍼 ──────────────────────────── */
+/* ── Windows API 래퍼 ── */
+
+// FindWindowW(lpClassName, lpWindowName) → HWND
+// 클래스명 null: 첫 번째 파라미터를 I64(0)으로 전달
+function findWindowByClass(className: string, windowTitle: string): bigint {
+  const { load, DataType } = require('ffi-rs') as typeof import('ffi-rs')
+  return load({
+    library: 'user32',
+    funcName: 'FindWindowW',
+    retType: DataType.I64,
+    paramsType: [DataType.WString, DataType.WString],
+    paramsValue: [className, windowTitle],
+  }) as bigint
+}
+
+function findWindowByTitleOnly(windowTitle: string): bigint {
+  // 클래스명 없이 제목만으로 검색: lpClassName = NULL (0)
+  const { load, DataType } = require('ffi-rs') as typeof import('ffi-rs')
+  return load({
+    library: 'user32',
+    funcName: 'FindWindowW',
+    retType: DataType.I64,
+    paramsType: [DataType.I64, DataType.WString],
+    paramsValue: [BigInt(0), windowTitle],
+  }) as bigint
+}
 
 function showWindow(hwnd: bigint): void {
   const { load, DataType } = require('ffi-rs') as typeof import('ffi-rs')
@@ -45,57 +73,30 @@ function setForegroundWindow(hwnd: bigint): void {
   })
 }
 
-/* ── PowerShell로 창 제목 검색 ──────────────────── */
-const PS_ENUM_SCRIPT = `
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-using System.Text;
-public class WinEnum {
-    [DllImport("user32.dll")]
-    private static extern bool EnumWindows(EnumWindowsProc e, IntPtr p);
-    private delegate bool EnumWindowsProc(IntPtr h, IntPtr p);
-    [DllImport("user32.dll", CharSet=CharSet.Unicode)]
-    private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
-    [DllImport("user32.dll")]
-    private static extern bool IsWindowVisible(IntPtr h);
-    public static long FindByTitle(string title) {
-        long found = 0;
-        EnumWindows((h, p) => {
-            if (!IsWindowVisible(h)) return true;
-            var sb = new StringBuilder(512);
-            GetWindowText(h, sb, sb.Capacity);
-            if (sb.ToString() == title) { found = h.ToInt64(); return false; }
-            return true;
-        }, IntPtr.Zero);
-        return found;
+/* ── 채팅방 창 핸들 찾기 ── */
+function findChatWindow(chatName: string): bigint | null {
+  // 1단계: 알려진 클래스명으로 직접 찾기 (빠름)
+  for (const cls of KAKAO_CHAT_CLASSES) {
+    try {
+      const hwnd = findWindowByClass(cls, chatName)
+      if (hwnd !== BigInt(0)) return hwnd
+    } catch {
+      // 해당 클래스 실패 시 다음 시도
     }
-}
-"@
-`
-
-function runPS(script: string): string {
-  const encoded = Buffer.from(script, 'utf16le').toString('base64')
-  return execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`, {
-    encoding: 'utf8',
-    timeout: 8000,
-    windowsHide: true,
-  }).trim()
-}
-
-function findWindowByTitle(title: string): bigint | null {
-  const escaped = title.replace(/'/g, "''")
-  const script = `${PS_ENUM_SCRIPT}\n[WinEnum]::FindByTitle('${escaped}')`
-  try {
-    const result = runPS(script)
-    const val = parseInt(result, 10)
-    return isNaN(val) || val === 0 ? null : BigInt(val)
-  } catch {
-    return null
   }
+
+  // 2단계: 클래스명 없이 제목만으로 찾기
+  try {
+    const hwnd = findWindowByTitleOnly(chatName)
+    if (hwnd !== BigInt(0)) return hwnd
+  } catch {
+    // ignore
+  }
+
+  return null
 }
 
-/* ── 카카오톡 상태 확인 ──────────────────────────── */
+/* ── 카카오톡 실행 여부 확인 ── */
 export function isKakaoRunning(): boolean {
   if (!isWindows) return false
   try {
@@ -109,7 +110,7 @@ export function isKakaoRunning(): boolean {
   }
 }
 
-/* ── 카카오톡 실행 ────────────────────────────────── */
+/* ── 카카오톡 실행 ── */
 const KAKAO_PATHS = [
   path.join(process.env.LOCALAPPDATA ?? '', 'Kakao', 'KakaoTalk', 'KakaoTalk.exe'),
   'C:\\Program Files\\Kakao\\KakaoTalk\\KakaoTalk.exe',
@@ -124,7 +125,7 @@ export function launchKakao(): boolean {
   return true
 }
 
-/* ── 채팅방 열기 ─────────────────────────────────── */
+/* ── 채팅방 열기 (메인 진입점) ── */
 export async function openKakaoChat(
   chatName: string,
 ): Promise<{ success: boolean; message: string }> {
@@ -132,26 +133,27 @@ export async function openKakaoChat(
     return { success: false, message: 'Windows에서만 지원됩니다.' }
   }
   if (!ensureLib()) {
-    return { success: false, message: 'ffi-rs 초기화 실패.' }
+    return { success: false, message: 'Windows API 초기화 실패. 앱을 재시작해 주세요.' }
   }
 
   if (!isKakaoRunning()) {
     const launched = launchKakao()
     if (!launched) {
-      return {
-        success: false,
-        message: '카카오톡을 찾을 수 없습니다. 설치 경로를 확인하세요.',
-      }
+      return { success: false, message: '카카오톡을 찾을 수 없습니다. 설치 경로를 확인하세요.' }
     }
-    // 카카오톡 로딩 대기
     await new Promise<void>((resolve) => setTimeout(resolve, 3500))
   }
 
-  const hwnd = findWindowByTitle(chatName)
+  // 5초 타임아웃으로 창 찾기
+  const hwnd = await Promise.race<bigint | null>([
+    Promise.resolve(findChatWindow(chatName)),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+  ])
+
   if (!hwnd) {
     return {
       success: false,
-      message: `'${chatName}' 채팅방을 찾을 수 없습니다.\n카카오톡에서 채팅방을 한 번 열어두면 목록에 표시됩니다.`,
+      message: `'${chatName}' 채팅방을 찾을 수 없습니다.\n카카오톡에서 채팅방을 열어둔 상태여야 합니다.`,
     }
   }
 
