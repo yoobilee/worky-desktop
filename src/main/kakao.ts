@@ -1,6 +1,7 @@
-import { execSync, spawn } from 'child_process'
+import { execSync, spawn, spawnSync } from 'child_process'
 import path from 'path'
 import fs from 'fs'
+import os from 'os'
 
 const isWindows = process.platform === 'win32'
 
@@ -162,21 +163,12 @@ public class WinList {
 }
 
 /* ── 카카오톡 메인 창 검색 자동화 ── */
-// findAndActivate 결과가 not_found일 때 호출.
-// 메인 창(EVA_Window_Dblclk)을 활성화 후 UI Automation으로 검색창에 텍스트 입력,
-// 첫 번째 결과를 클릭해 채팅방을 연다.
-function searchAndOpenChat(chatName: string): 'ok' | 'not_found' | 'error' {
-  const escaped = chatName.replace(/'/g, "''")
-
-  // SendKeys 특수문자 이스케이프 (+^%~(){}[] → 중괄호로 감싸기)
-  const sendKeysEscaped = chatName
-    .replace(/[+^%~(){}[\]]/g, (c) => `{${c}}`)
-    .replace(/'/g, "''")
-
-  const script = `
+// 스크립트가 길어 EncodedCommand 명령줄 길이 제한을 초과하므로
+// 임시 .ps1 파일로 저장 후 -File 로 실행한다.
+const SEARCH_PS1_CONTENT = `
+param([string]$chatName)
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
-Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 Add-Type @"
@@ -199,8 +191,11 @@ public class KakaoSearch {
     private static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")]
+    private static extern void mouse_event(int f, int x, int y, int c, int e);
 
-    // 메인 창: 클래스 EVA_Window_Dblclk, 제목 짧음(카카오톡)
     public static IntPtr FindMainWindow() {
         IntPtr result = IntPtr.Zero;
         EnumWindows((h, p) => {
@@ -210,12 +205,7 @@ public class KakaoSearch {
             if (cls.ToString() != "EVA_Window_Dblclk") return true;
             var sb = new StringBuilder(512);
             GetWindowText(h, sb, sb.Capacity);
-            string title = sb.ToString();
-            // 채팅방 창은 제목이 채팅 상대 이름 → 메인은 짧은 제목
-            if (title.Length > 0 && title.Length <= 20) {
-                result = h;
-                return false;
-            }
+            if (sb.Length > 0 && sb.Length <= 20) { result = h; return false; }
             return true;
         }, IntPtr.Zero);
         return result;
@@ -229,77 +219,58 @@ public class KakaoSearch {
         SetForegroundWindow(hwnd);
         Thread.Sleep(600);
 
-        // UI Automation으로 검색 Edit 컨트롤 찾기
         AutomationElement mainElem = AutomationElement.FromHandle(hwnd);
         if (mainElem == null) return "automation_failed";
 
         var editCond = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit);
         AutomationElement searchBox = mainElem.FindFirst(TreeScope.Descendants, editCond);
+        if (searchBox == null) return "no_search_box";
 
-        if (searchBox != null) {
-            searchBox.SetFocus();
-            Thread.Sleep(200);
-            // ValuePattern으로 텍스트 설정
-            object vpObj;
-            if (searchBox.TryGetCurrentPattern(ValuePattern.Pattern, out vpObj)) {
-                ((ValuePattern)vpObj).SetValue(chatName);
-            }
-        } else {
-            // Fallback: 검색 단축키 후 SendKeys
-            return "no_search_box";
-        }
-
+        searchBox.SetFocus();
+        Thread.Sleep(200);
+        object vpObj;
+        if (searchBox.TryGetCurrentPattern(ValuePattern.Pattern, out vpObj))
+            ((ValuePattern)vpObj).SetValue(chatName);
         Thread.Sleep(800);
 
-        // 첫 번째 검색 결과 ListItem 찾아서 클릭
         var listCond = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem);
-        AutomationElementCollection items = mainElem.FindAll(TreeScope.Descendants, listCond);
-
+        var items = mainElem.FindAll(TreeScope.Descendants, listCond);
         foreach (AutomationElement item in items) {
-            string name = item.Current.Name;
-            if (name.Contains(chatName)) {
-                object ipObj;
-                if (item.TryGetCurrentPattern(InvokePattern.Pattern, out ipObj)) {
-                    ((InvokePattern)ipObj).Invoke();
-                    return "ok";
-                }
-                // Fallback: 클릭
-                System.Windows.Point pt = item.GetClickablePoint();
-                SetForegroundWindow(hwnd);
-                Thread.Sleep(100);
-                return "click_needed:" + (long)pt.X + "," + (long)pt.Y;
+            if (!item.Current.Name.Contains(chatName)) continue;
+            object ipObj;
+            if (item.TryGetCurrentPattern(InvokePattern.Pattern, out ipObj)) {
+                ((InvokePattern)ipObj).Invoke();
+                return "ok";
             }
+            System.Windows.Point pt = item.GetClickablePoint();
+            SetCursorPos((int)pt.X, (int)pt.Y);
+            Thread.Sleep(100);
+            mouse_event(0x0002, 0, 0, 0, 0);
+            mouse_event(0x0004, 0, 0, 0, 0);
+            return "ok";
         }
         return "not_found";
     }
 }
 "@
+[KakaoSearch]::Search($chatName)
+`.trimStart()
 
-$result = [KakaoSearch]::Search('${escaped}')
-Write-Output $result
-
-# click_needed:x,y 반환 시 마우스 클릭
-if ($result -like "click_needed:*") {
-    $coords = $result.Replace("click_needed:", "").Split(",")
-    $x = [int]$coords[0]; $y = [int]$coords[1]
-    Add-Type -TypeDefinition @"
-using System.Runtime.InteropServices;
-public class Mouse2 {
-    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
-    [DllImport("user32.dll")] public static extern void mouse_event(int f, int x, int y, int c, int e);
-}
-"@
-    [Mouse2]::SetCursorPos($x, $y)
-    Start-Sleep -Milliseconds 100
-    [Mouse2]::mouse_event(0x0002, 0, 0, 0, 0)
-    [Mouse2]::mouse_event(0x0004, 0, 0, 0, 0)
-    Write-Output "ok"
-}
-`
+function searchAndOpenChat(chatName: string): 'ok' | 'not_found' | 'error' {
+  const ps1Path = path.join(os.tmpdir(), 'worky_kakao_search.ps1')
   try {
+    // UTF-8 BOM 포함 저장 (PowerShell이 한글 param을 올바르게 읽도록)
+    const bom = Buffer.from([0xef, 0xbb, 0xbf])
+    fs.writeFileSync(ps1Path, Buffer.concat([bom, Buffer.from(SEARCH_PS1_CONTENT, 'utf8')]))
+
     console.log(`[kakao] searchAndOpenChat start: "${chatName}"`)
-    const raw = psText(script, 12000)
-    // 마지막 줄이 실제 결과
+    const proc = spawnSync(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ps1Path, '-chatName', chatName],
+      { encoding: 'buffer', timeout: 15000, windowsHide: true },
+    )
+    const raw = proc.stdout?.toString('utf8').trim() ?? ''
+    // 마지막 non-empty 줄이 결과값
     const result = raw.split('\n').map((l) => l.trim()).filter(Boolean).pop() ?? ''
     console.log(`[kakao] searchAndOpenChat result: "${result}"`)
     if (result === 'ok') return 'ok'
@@ -308,6 +279,8 @@ public class Mouse2 {
   } catch (e) {
     console.error('[kakao] searchAndOpenChat exception:', e)
     return 'error'
+  } finally {
+    try { fs.unlinkSync(ps1Path) } catch { /* ignore */ }
   }
 }
 
