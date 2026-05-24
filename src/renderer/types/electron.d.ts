@@ -15,6 +15,7 @@ declare global {
         openChat: (chatName: string) => Promise<{ success: boolean; message: string }>
         isRunning: () => Promise<boolean>
         launch: () => Promise<boolean>
+        listWindows: () => Promise<string[]>
       }
     }
   }

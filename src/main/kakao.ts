@@ -125,6 +125,65 @@ export function launchKakao(): boolean {
   return true
 }
 
+/* ── 디버그: KakaoTalk 관련 창 목록 ── */
+export function listKakaoWindows(): string[] {
+  if (!isWindows) return []
+  const script = `
+Add-Type @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
+public class WinList {
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc e, IntPtr p);
+    private delegate bool EnumWindowsProc(IntPtr h, IntPtr p);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    public static string[] List() {
+        var results = new List<string>();
+        EnumWindows((h, p) => {
+            if (!IsWindowVisible(h)) return true;
+            var sb = new StringBuilder(512);
+            int len = GetWindowText(h, sb, sb.Capacity);
+            if (len == 0) return true;
+            string title = sb.ToString();
+            uint pid = 0;
+            GetWindowThreadProcessId(h, out pid);
+            bool isKakao = false;
+            try {
+                var proc = Process.GetProcessById((int)pid);
+                isKakao = proc.ProcessName.IndexOf("KakaoTalk", StringComparison.OrdinalIgnoreCase) >= 0;
+            } catch {}
+            bool titleMatch = title.IndexOf("카카오", StringComparison.OrdinalIgnoreCase) >= 0
+                           || title.IndexOf("kakao", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (isKakao || titleMatch) results.Add(title);
+            return true;
+        }, IntPtr.Zero);
+        return results.ToArray();
+    }
+}
+"@
+[WinList]::List() | ForEach-Object { $_ }
+`.trim()
+  try {
+    const encoded = Buffer.from(script, 'utf16le').toString('base64')
+    const output = execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`, {
+      encoding: 'utf8',
+      timeout: 10000,
+      windowsHide: true,
+    }).trim()
+    return output ? output.split('\n').map((l) => l.trim()).filter(Boolean) : []
+  } catch {
+    return []
+  }
+}
+
 /* ── 채팅방 열기 (메인 진입점) ── */
 export async function openKakaoChat(
   chatName: string,

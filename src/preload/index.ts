@@ -18,5 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('kakao:is-running'),
     launch: (): Promise<boolean> =>
       ipcRenderer.invoke('kakao:launch'),
+    listWindows: (): Promise<string[]> =>
+      ipcRenderer.invoke('kakao:list-windows'),
   },
 })

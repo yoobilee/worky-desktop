@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'path'
-import { openKakaoChat, isKakaoRunning, launchKakao } from './kakao'
+import { openKakaoChat, isKakaoRunning, launchKakao, listKakaoWindows } from './kakao'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -49,6 +49,7 @@ ipcMain.on('open-external', (_e, url: string) => shell.openExternal(url))
 ipcMain.handle('kakao:open-chat', (_e, chatName: string) => openKakaoChat(chatName))
 ipcMain.handle('kakao:is-running', () => isKakaoRunning())
 ipcMain.handle('kakao:launch', () => launchKakao())
+ipcMain.handle('kakao:list-windows', () => listKakaoWindows())
 
 // Windows: deep link via second instance
 const gotLock = app.requestSingleInstanceLock()
