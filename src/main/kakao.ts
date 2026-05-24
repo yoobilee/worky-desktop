@@ -3,53 +3,25 @@ import path from 'path'
 import fs from 'fs'
 
 const isWindows = process.platform === 'win32'
-const SW_RESTORE = 9
 
-/* ── ffi-rs 초기화 ── */
-let libReady = false
-
-function ensureLib(): boolean {
-  if (!isWindows) return false
-  if (libReady) return true
-  try {
-    const { open } = require('ffi-rs') as typeof import('ffi-rs')
-    open({ library: 'user32', path: 'user32.dll' })
-    libReady = true
-    return true
-  } catch {
-    return false
-  }
-}
-
-/* ── Windows API 래퍼 (ShowWindow + SetForegroundWindow만 ffi-rs 사용) ── */
-
-function showWindow(hwnd: bigint): void {
-  const { load, DataType } = require('ffi-rs') as typeof import('ffi-rs')
-  load({
-    library: 'user32',
-    funcName: 'ShowWindow',
-    retType: DataType.Boolean,
-    paramsType: [DataType.I64, DataType.I32],
-    paramsValue: [hwnd, SW_RESTORE],
+/* ── PowerShell 헬퍼 ── */
+function runPS(script: string, timeout = 8000): Buffer {
+  const encoded = Buffer.from(script.trim(), 'utf16le').toString('base64')
+  return execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`, {
+    encoding: 'buffer',
+    timeout,
+    windowsHide: true,
   })
 }
 
-function setForegroundWindow(hwnd: bigint): void {
-  const { load, DataType } = require('ffi-rs') as typeof import('ffi-rs')
-  load({
-    library: 'user32',
-    funcName: 'SetForegroundWindow',
-    retType: DataType.Boolean,
-    paramsType: [DataType.I64],
-    paramsValue: [hwnd],
-  })
+function psText(script: string, timeout = 8000): string {
+  return runPS(script, timeout).toString('utf8').trim()
 }
 
-/* ── 채팅방 창 핸들 찾기 (PowerShell EnumWindows → HWND 숫자 반환) ── */
-// ffi-rs FindWindowW는 한글 WString 인코딩 문제로 실패하므로
-// listKakaoWindows와 동일한 PowerShell 방식으로 통일.
-function findChatWindow(chatName: string): bigint | null {
-  // 싱글쿼트 이스케이프 (PowerShell 문자열 내 사용)
+/* ── 채팅방: 찾기 + 활성화 한 번에 (PowerShell 단일 호출) ── */
+// 찾기(EnumWindows)와 활성화(ShowWindow+SetForegroundWindow)를
+// 하나의 C# 클래스에서 처리해서 ffi-rs 블로킹 없이 완료.
+function findAndActivateWindow(chatName: string): 'ok' | 'not_found' | 'error' {
   const escaped = chatName.replace(/'/g, "''")
   const script = `
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -58,7 +30,7 @@ Add-Type @"
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
-public class WinFinder {
+public class WinActivate {
     [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc e, IntPtr p);
     private delegate bool EnumWindowsProc(IntPtr h, IntPtr p);
@@ -66,33 +38,38 @@ public class WinFinder {
     private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
     [DllImport("user32.dll")]
     private static extern bool IsWindowVisible(IntPtr h);
-    public static long FindByExactTitle(string title) {
-        long found = 0;
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr h);
+    public static string FindAndActivate(string title) {
+        IntPtr found = IntPtr.Zero;
         EnumWindows((h, p) => {
             if (!IsWindowVisible(h)) return true;
             var sb = new StringBuilder(512);
             GetWindowText(h, sb, sb.Capacity);
-            if (sb.ToString() == title) { found = h.ToInt64(); return false; }
+            if (sb.ToString() == title) { found = h; return false; }
             return true;
         }, IntPtr.Zero);
-        return found;
+        if (found == IntPtr.Zero) return "not_found";
+        ShowWindow(found, 9);
+        SetForegroundWindow(found);
+        return "ok";
     }
 }
 "@
-[WinFinder]::FindByExactTitle('${escaped}')
-`.trim()
-
+[WinActivate]::FindAndActivate('${escaped}')
+`
   try {
-    const encoded = Buffer.from(script, 'utf16le').toString('base64')
-    const raw = execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`, {
-      encoding: 'buffer',
-      timeout: 8000,
-      windowsHide: true,
-    })
-    const val = parseInt(raw.toString('utf8').trim(), 10)
-    return isNaN(val) || val === 0 ? null : BigInt(val)
-  } catch {
-    return null
+    console.log(`[kakao] findAndActivate start: "${chatName}"`)
+    const result = psText(script, 8000)
+    console.log(`[kakao] findAndActivate result: "${result}"`)
+    if (result === 'ok') return 'ok'
+    if (result === 'not_found') return 'not_found'
+    return 'error'
+  } catch (e) {
+    console.error('[kakao] findAndActivate exception:', e)
+    return 'error'
   }
 }
 
@@ -100,11 +77,14 @@ public class WinFinder {
 export function isKakaoRunning(): boolean {
   if (!isWindows) return false
   try {
+    console.log('[kakao] isKakaoRunning check...')
     const result = execSync(
       'tasklist /FI "IMAGENAME eq KakaoTalk.exe" /FO CSV /NH',
       { encoding: 'utf8', timeout: 3000, windowsHide: true },
     )
-    return result.toLowerCase().includes('kakaotalk.exe')
+    const running = result.toLowerCase().includes('kakaotalk.exe')
+    console.log(`[kakao] isKakaoRunning: ${running}`)
+    return running
   } catch {
     return false
   }
@@ -120,6 +100,7 @@ const KAKAO_PATHS = [
 export function launchKakao(): boolean {
   if (!isWindows) return false
   const execPath = KAKAO_PATHS.find((p) => fs.existsSync(p))
+  console.log(`[kakao] launchKakao: ${execPath ?? 'not found'}`)
   if (!execPath) return false
   spawn(execPath, [], { detached: true, stdio: 'ignore' }).unref()
   return true
@@ -128,8 +109,6 @@ export function launchKakao(): boolean {
 /* ── 디버그: KakaoTalk 관련 창 목록 ── */
 export function listKakaoWindows(): string[] {
   if (!isWindows) return []
-
-  // stdout을 UTF-8로 고정 후 C# EnumWindows로 창 목록 수집
   const script = `
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
@@ -173,17 +152,9 @@ public class WinList {
 }
 "@
 [WinList]::List() | ForEach-Object { $_ }
-`.trim()
-
+`
   try {
-    const encoded = Buffer.from(script, 'utf16le').toString('base64')
-    // stdout을 buffer로 받아서 utf8로 디코딩 (CP949 우회)
-    const raw = execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`, {
-      encoding: 'buffer',
-      timeout: 10000,
-      windowsHide: true,
-    })
-    const output = raw.toString('utf8').trim()
+    const output = psText(script, 10000)
     return output ? output.split('\n').map((l) => l.trim()).filter(Boolean) : []
   } catch {
     return []
@@ -197,32 +168,30 @@ export async function openKakaoChat(
   if (!isWindows) {
     return { success: false, message: 'Windows에서만 지원됩니다.' }
   }
-  if (!ensureLib()) {
-    return { success: false, message: 'Windows API 초기화 실패. 앱을 재시작해 주세요.' }
-  }
+
+  console.log(`[kakao] openKakaoChat: "${chatName}"`)
 
   if (!isKakaoRunning()) {
+    console.log('[kakao] KakaoTalk not running, launching...')
     const launched = launchKakao()
     if (!launched) {
       return { success: false, message: '카카오톡을 찾을 수 없습니다. 설치 경로를 확인하세요.' }
     }
+    console.log('[kakao] waiting for KakaoTalk to start...')
     await new Promise<void>((resolve) => setTimeout(resolve, 3500))
   }
 
-  // 5초 타임아웃으로 창 찾기
-  const hwnd = await Promise.race<bigint | null>([
-    Promise.resolve(findChatWindow(chatName)),
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-  ])
+  console.log('[kakao] calling findAndActivate...')
+  const result = findAndActivateWindow(chatName)
 
-  if (!hwnd) {
+  if (result === 'ok') {
+    return { success: true, message: '채팅방을 열었습니다.' }
+  }
+  if (result === 'not_found') {
     return {
       success: false,
       message: `'${chatName}' 채팅방을 찾을 수 없습니다.\n카카오톡에서 채팅방을 열어둔 상태여야 합니다.`,
     }
   }
-
-  showWindow(hwnd)
-  setForegroundWindow(hwnd)
-  return { success: true, message: '채팅방을 열었습니다.' }
+  return { success: false, message: '창 활성화 중 오류가 발생했습니다.' }
 }
