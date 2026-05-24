@@ -22,6 +22,7 @@ function normalize(raw: Record<string, unknown>): Client {
     dailyLog: (raw.dailyLog as Record<string, 'done' | 'failed'>) ?? {},
     showGrassGrid: (raw.showGrassGrid as boolean) ?? false,
     createdAt: (raw.createdAt as number) ?? Date.now(),
+    kakaoChat: (raw.kakaoChat as string) ?? '',
   }
 }
 
@@ -42,6 +43,7 @@ export function dbToClient(row: DbClient): Client {
     dailyLog: row.progress as Record<string, 'done' | 'failed'>,
     showGrassGrid: row.show_grass_grid,
     createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    kakaoChat: row.kakao_chat_name ?? '',
   })
 }
 
@@ -49,7 +51,7 @@ export async function fetchClients(userId: string): Promise<Client[]> {
   const { data } = await supabase
     .from('clients')
     .select(
-      'id, name, status, contact_person, phone, link, tags, contract_start, contract_days, report_tone, memo, history, progress, show_grass_grid, created_at',
+      'id, name, status, contact_person, phone, link, tags, contract_start, contract_days, report_tone, memo, history, progress, show_grass_grid, created_at, kakao_chat_name',
     )
     .eq('user_id', userId)
     .order('created_at')
@@ -58,4 +60,8 @@ export async function fetchClients(userId: string): Promise<Client[]> {
 
 export async function updateClientStatus(id: string, status: ReportStatus, history: unknown[]): Promise<void> {
   await supabase.from('clients').update({ status, history }).eq('id', id)
+}
+
+export async function updateKakaoChat(id: string, kakaoChat: string): Promise<void> {
+  await supabase.from('clients').update({ kakao_chat_name: kakaoChat || null }).eq('id', id)
 }

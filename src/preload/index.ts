@@ -11,4 +11,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDeepLink: (callback: (url: string) => void) => {
     ipcRenderer.on('deep-link', (_e, url) => callback(url))
   },
+  kakao: {
+    openChat: (chatName: string): Promise<{ success: boolean; message: string }> =>
+      ipcRenderer.invoke('kakao:open-chat', chatName),
+    isRunning: (): Promise<boolean> =>
+      ipcRenderer.invoke('kakao:is-running'),
+    launch: (): Promise<boolean> =>
+      ipcRenderer.invoke('kakao:launch'),
+  },
 })

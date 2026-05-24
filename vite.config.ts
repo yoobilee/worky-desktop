@@ -13,6 +13,9 @@ export default defineConfig({
         vite: {
           build: {
             outDir: 'dist/main',
+            rollupOptions: {
+              external: ['ffi-rs'],
+            },
           },
         },
       },

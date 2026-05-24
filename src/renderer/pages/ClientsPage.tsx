@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import {
   IconBuilding, IconUser, IconPhone, IconSearch, IconArrowsSort,
   IconLoader2, IconCircleCheck, IconCircleX, IconClock, IconPlayerPlay,
-  IconCalendar, IconRefresh,
+  IconCalendar, IconRefresh, IconMessageCircle, IconPencil, IconCheck, IconX,
 } from '@tabler/icons-react'
 import type { Client, ReportStatus, SortOrder } from '../types'
-import { fetchClients, updateClientStatus } from '../lib/clients'
+import { fetchClients, updateClientStatus, updateKakaoChat } from '../lib/clients'
 import type { User } from '@supabase/supabase-js'
 
 /* ── 상태 설정 ── */
@@ -102,13 +102,138 @@ function formatDate(s: string): string {
   return `${y}.${String(m).padStart(2, '0')}.${String(d).padStart(2, '0')}`
 }
 
+/* ── 카카오 버튼 ── */
+function KakaoButton({
+  client,
+  onKakaoChatSaved,
+}: {
+  client: Client
+  onKakaoChatSaved: (id: string, name: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [inputVal, setInputVal] = useState(client.kakaoChat)
+  const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState<{ ok: boolean; msg: string } | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function showToast(ok: boolean, msg: string) {
+    setToast({ ok, msg })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  async function handleOpen() {
+    if (!client.kakaoChat) {
+      setEditing(true)
+      setTimeout(() => inputRef.current?.focus(), 50)
+      return
+    }
+    setLoading(true)
+    const result = await window.electronAPI.kakao.openChat(client.kakaoChat)
+    setLoading(false)
+    if (!result.success) showToast(false, result.message)
+  }
+
+  async function handleSave() {
+    const name = inputVal.trim()
+    await updateKakaoChat(client.id, name)
+    onKakaoChatSaved(client.id, name)
+    setEditing(false)
+    if (name) showToast(true, `채팅방 '${name}' 등록 완료`)
+  }
+
+  function handleCancel() {
+    setInputVal(client.kakaoChat)
+    setEditing(false)
+  }
+
+  return (
+    <div className="relative">
+      {/* 토스트 */}
+      {toast && (
+        <div
+          className={[
+            'absolute bottom-full mb-2 left-0 z-50 px-3 py-2 rounded-lg text-xs font-medium whitespace-pre-wrap max-w-[220px] shadow-lg',
+            toast.ok
+              ? 'bg-emerald-900/90 text-emerald-300 border border-emerald-700'
+              : 'bg-red-900/90 text-red-300 border border-red-700',
+          ].join(' ')}
+        >
+          {toast.msg}
+        </div>
+      )}
+
+      {editing ? (
+        /* 채팅방 이름 입력 인라인 */
+        <div className="flex items-center gap-1">
+          <input
+            ref={inputRef}
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSave()
+              if (e.key === 'Escape') handleCancel()
+            }}
+            placeholder="채팅방 이름"
+            className="flex-1 min-w-0 px-2 py-1 rounded-lg bg-slate-700 border border-[#FAD709]/40 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-[#FAD709]/70"
+          />
+          <button
+            onClick={handleSave}
+            className="p-1 rounded-md bg-[#FAD709]/20 text-[#FAD709] hover:bg-[#FAD709]/30 transition-colors"
+          >
+            <IconCheck size={12} />
+          </button>
+          <button
+            onClick={handleCancel}
+            className="p-1 rounded-md text-slate-500 hover:bg-slate-700 transition-colors"
+          >
+            <IconX size={12} />
+          </button>
+        </div>
+      ) : (
+        /* 카카오 버튼 */
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleOpen}
+            disabled={loading}
+            title={client.kakaoChat ? `${client.kakaoChat} 채팅방 열기` : '카카오톡 채팅방 등록'}
+            className={[
+              'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all',
+              client.kakaoChat
+                ? 'bg-[#FAD709]/15 text-[#FAD709] hover:bg-[#FAD709]/25 border border-[#FAD709]/30'
+                : 'bg-slate-800 text-slate-500 hover:bg-slate-700 border border-slate-700',
+            ].join(' ')}
+          >
+            {loading ? (
+              <IconLoader2 size={13} className="animate-spin" />
+            ) : (
+              <IconMessageCircle size={13} />
+            )}
+            {client.kakaoChat ? client.kakaoChat : '채팅방 등록'}
+          </button>
+          {client.kakaoChat && (
+            <button
+              onClick={() => { setEditing(true); setTimeout(() => inputRef.current?.focus(), 50) }}
+              className="p-1 rounded-md text-slate-600 hover:text-slate-400 hover:bg-slate-800 transition-colors"
+              title="채팅방 이름 변경"
+            >
+              <IconPencil size={11} />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── 클라이언트 카드 ── */
 function ClientCard({
   client,
   onStatusChange,
+  onKakaoChatSaved,
 }: {
   client: Client
   onStatusChange: (id: string, status: ReportStatus) => void
+  onKakaoChatSaved: (id: string, name: string) => void
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -129,6 +254,7 @@ function ClientCard({
 
   return (
     <div className="bg-slate-800/60 rounded-2xl border border-slate-700/60 p-4 flex flex-col gap-2.5 hover:border-slate-600 transition-colors group">
+      {/* 헤더 */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-100 truncate">{client.name}</p>
@@ -146,6 +272,7 @@ function ClientCard({
           )}
         </div>
 
+        {/* 상태 드롭다운 */}
         <div className="relative shrink-0" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((v) => !v)}
@@ -182,6 +309,7 @@ function ClientCard({
         </div>
       </div>
 
+      {/* 태그 */}
       {client.tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {client.tags.map((t) => (
@@ -192,10 +320,12 @@ function ClientCard({
         </div>
       )}
 
+      {/* 메모 */}
       {client.memo && (
         <p className="text-xs text-slate-500 line-clamp-1">{client.memo}</p>
       )}
 
+      {/* D-day */}
       {contractEnd && ddayFmt && (
         <div className="flex items-center gap-1.5">
           <IconCalendar size={12} className="text-slate-500 shrink-0" />
@@ -204,10 +334,13 @@ function ClientCard({
         </div>
       )}
 
-      <div
-        className="h-0.5 rounded-full mt-auto"
-        style={{ background: client.status === 'pending' ? '#334155' : undefined }}
-      >
+      {/* 카카오톡 채팅방 */}
+      <div className="pt-1 border-t border-slate-700/50">
+        <KakaoButton client={client} onKakaoChatSaved={onKakaoChatSaved} />
+      </div>
+
+      {/* 상태 바 */}
+      <div className="h-0.5 bg-slate-700 rounded-full overflow-hidden">
         {client.status !== 'pending' && (
           <div className={`h-full rounded-full ${cfg.barCls} w-full`} />
         )}
@@ -248,6 +381,10 @@ export default function ClientsPage({ user }: { user: User }) {
         return updated
       }),
     )
+  }
+
+  function handleKakaoChatSaved(id: string, name: string) {
+    setClients((prev) => prev.map((c) => c.id === id ? { ...c, kakaoChat: name } : c))
   }
 
   const filtered = clients.filter(
@@ -359,7 +496,12 @@ export default function ClientsPage({ user }: { user: User }) {
         ) : (
           <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
             {sorted.map((c) => (
-              <ClientCard key={c.id} client={c} onStatusChange={handleStatusChange} />
+              <ClientCard
+                key={c.id}
+                client={c}
+                onStatusChange={handleStatusChange}
+                onKakaoChatSaved={handleKakaoChatSaved}
+              />
             ))}
           </div>
         )}

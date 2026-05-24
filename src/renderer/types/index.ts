@@ -16,6 +16,7 @@ export interface Client {
   dailyLog: Record<string, 'done' | 'failed'>
   showGrassGrid: boolean
   createdAt: number
+  kakaoChat: string
 }
 
 export interface DbClient {
@@ -34,6 +35,7 @@ export interface DbClient {
   progress: Record<string, string>
   show_grass_grid: boolean
   created_at: string
+  kakao_chat_name: string | null
 }
 
 export type SortOrder = 'inprogress' | 'pending' | 'expiry' | 'name'
