@@ -4,12 +4,8 @@
   "description": "Worky Desktop App - Electron + React + TypeScript",
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
-    "dev:vite": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && electron .",
-    "build": "npm run build:vite && npm run build:electron",
-    "build:vite": "tsc && vite build",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "dev": "vite",
+    "build": "vite build",
     "dist": "npm run build && electron-builder",
     "preview": "vite preview"
   },
@@ -29,6 +25,8 @@
     "tailwindcss": "^3.4.4",
     "typescript": "^5.4.5",
     "vite": "^5.3.1",
+    "vite-plugin-electron": "^0.29.1",
+    "vite-plugin-electron-renderer": "^0.14.7",
     "wait-on": "^7.2.0"
   },
   "dependencies": {
