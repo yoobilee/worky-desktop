@@ -128,7 +128,11 @@ export function launchKakao(): boolean {
 /* ── 디버그: KakaoTalk 관련 창 목록 ── */
 export function listKakaoWindows(): string[] {
   if (!isWindows) return []
+
+  // stdout을 UTF-8로 고정 후 C# EnumWindows로 창 목록 수집
   const script = `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type @"
 using System;
 using System.Collections.Generic;
@@ -160,8 +164,7 @@ public class WinList {
                 var proc = Process.GetProcessById((int)pid);
                 isKakao = proc.ProcessName.IndexOf("KakaoTalk", StringComparison.OrdinalIgnoreCase) >= 0;
             } catch {}
-            bool titleMatch = title.IndexOf("카카오", StringComparison.OrdinalIgnoreCase) >= 0
-                           || title.IndexOf("kakao", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool titleMatch = title.IndexOf("kakao", StringComparison.OrdinalIgnoreCase) >= 0;
             if (isKakao || titleMatch) results.Add(title);
             return true;
         }, IntPtr.Zero);
@@ -171,13 +174,16 @@ public class WinList {
 "@
 [WinList]::List() | ForEach-Object { $_ }
 `.trim()
+
   try {
     const encoded = Buffer.from(script, 'utf16le').toString('base64')
-    const output = execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`, {
-      encoding: 'utf8',
+    // stdout을 buffer로 받아서 utf8로 디코딩 (CP949 우회)
+    const raw = execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`, {
+      encoding: 'buffer',
       timeout: 10000,
       windowsHide: true,
-    }).trim()
+    })
+    const output = raw.toString('utf8').trim()
     return output ? output.split('\n').map((l) => l.trim()).filter(Boolean) : []
   } catch {
     return []
