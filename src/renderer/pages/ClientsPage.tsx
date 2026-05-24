@@ -3,6 +3,7 @@ import {
   IconBuilding, IconUser, IconPhone, IconSearch, IconArrowsSort,
   IconLoader2, IconCircleCheck, IconCircleX, IconClock, IconPlayerPlay,
   IconCalendar, IconRefresh, IconMessageCircle, IconPencil, IconCheck, IconX,
+  IconBug,
 } from '@tabler/icons-react'
 import type { Client, ReportStatus, SortOrder } from '../types'
 import { fetchClients, updateClientStatus, updateKakaoChat } from '../lib/clients'
@@ -65,6 +66,50 @@ const SORT_LABELS: Record<SortOrder, string> = {
   name: '거래처명순',
 }
 const SORT_CYCLE: SortOrder[] = ['inprogress', 'pending', 'expiry', 'name']
+
+/* ── DEV 디버그 바 ── */
+function DebugBar() {
+  const [output, setOutput] = useState<string[] | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function handleListWindows() {
+    setLoading(true)
+    const windows = await window.electronAPI.kakao.listWindows()
+    console.log('[kakao:list-windows]', windows)
+    setOutput(windows)
+    setLoading(false)
+  }
+
+  return (
+    <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-950/20 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <IconBug size={14} className="text-yellow-400 shrink-0" />
+        <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">Dev Debug</span>
+        <button
+          onClick={handleListWindows}
+          disabled={loading}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-300 text-xs font-semibold border border-yellow-500/40 hover:bg-yellow-500/30 transition-colors disabled:opacity-50"
+        >
+          {loading ? <IconLoader2 size={12} className="animate-spin" /> : <IconBug size={12} />}
+          카카오 창 목록 조회
+        </button>
+      </div>
+      {output !== null && (
+        output.length === 0 ? (
+          <p className="text-xs text-yellow-600">카카오톡 관련 창 없음 (실행 안됨 또는 창 없음)</p>
+        ) : (
+          <ul className="space-y-0.5 max-h-32 overflow-y-auto">
+            {output.map((title, i) => (
+              <li key={i} className="text-xs text-yellow-200 font-mono bg-yellow-900/20 px-2 py-0.5 rounded">
+                {title}
+              </li>
+            ))}
+          </ul>
+        )
+      )}
+    </div>
+  )
+}
 
 /* ── 헬퍼 ── */
 function addBusinessDays(start: string, days: number): string {
@@ -422,6 +467,9 @@ export default function ClientsPage({ user }: { user: User }) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* 헤더 */}
       <div className="px-6 pt-5 pb-4 shrink-0">
+        {/* DEV 디버그 바 */}
+        <DebugBar />
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-slate-100">거래처 목록</h2>
           <button
