@@ -3,7 +3,12 @@ import path from 'path'
 
 const isDev = process.env.NODE_ENV === 'development'
 
-app.setAsDefaultProtocolClient('worky')
+// 개발 환경에서는 electron 실행 파일 + 앱 경로를 명시적으로 등록
+if (isDev) {
+  app.setAsDefaultProtocolClient('worky', process.execPath, [app.getAppPath()])
+} else {
+  app.setAsDefaultProtocolClient('worky')
+}
 
 let mainWindow: BrowserWindow | null = null
 
