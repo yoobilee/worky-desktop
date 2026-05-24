@@ -5,9 +5,6 @@ import fs from 'fs'
 const isWindows = process.platform === 'win32'
 const SW_RESTORE = 9
 
-// KakaoTalk 채팅방 창 클래스명 후보 (우선순위 순)
-const KAKAO_CHAT_CLASSES = ['EVA_ChildWindow', 'EVA_Window', 'EVA_Window_Dblclk']
-
 /* ── ffi-rs 초기화 ── */
 let libReady = false
 
@@ -24,32 +21,7 @@ function ensureLib(): boolean {
   }
 }
 
-/* ── Windows API 래퍼 ── */
-
-// FindWindowW(lpClassName, lpWindowName) → HWND
-// 클래스명 null: 첫 번째 파라미터를 I64(0)으로 전달
-function findWindowByClass(className: string, windowTitle: string): bigint {
-  const { load, DataType } = require('ffi-rs') as typeof import('ffi-rs')
-  return load({
-    library: 'user32',
-    funcName: 'FindWindowW',
-    retType: DataType.I64,
-    paramsType: [DataType.WString, DataType.WString],
-    paramsValue: [className, windowTitle],
-  }) as bigint
-}
-
-function findWindowByTitleOnly(windowTitle: string): bigint {
-  // 클래스명 없이 제목만으로 검색: lpClassName = NULL (0)
-  const { load, DataType } = require('ffi-rs') as typeof import('ffi-rs')
-  return load({
-    library: 'user32',
-    funcName: 'FindWindowW',
-    retType: DataType.I64,
-    paramsType: [DataType.I64, DataType.WString],
-    paramsValue: [BigInt(0), windowTitle],
-  }) as bigint
-}
+/* ── Windows API 래퍼 (ShowWindow + SetForegroundWindow만 ffi-rs 사용) ── */
 
 function showWindow(hwnd: bigint): void {
   const { load, DataType } = require('ffi-rs') as typeof import('ffi-rs')
@@ -73,27 +45,55 @@ function setForegroundWindow(hwnd: bigint): void {
   })
 }
 
-/* ── 채팅방 창 핸들 찾기 ── */
+/* ── 채팅방 창 핸들 찾기 (PowerShell EnumWindows → HWND 숫자 반환) ── */
+// ffi-rs FindWindowW는 한글 WString 인코딩 문제로 실패하므로
+// listKakaoWindows와 동일한 PowerShell 방식으로 통일.
 function findChatWindow(chatName: string): bigint | null {
-  // 1단계: 알려진 클래스명으로 직접 찾기 (빠름)
-  for (const cls of KAKAO_CHAT_CLASSES) {
-    try {
-      const hwnd = findWindowByClass(cls, chatName)
-      if (hwnd !== BigInt(0)) return hwnd
-    } catch {
-      // 해당 클래스 실패 시 다음 시도
+  // 싱글쿼트 이스케이프 (PowerShell 문자열 내 사용)
+  const escaped = chatName.replace(/'/g, "''")
+  const script = `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public class WinFinder {
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc e, IntPtr p);
+    private delegate bool EnumWindowsProc(IntPtr h, IntPtr p);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr h);
+    public static long FindByExactTitle(string title) {
+        long found = 0;
+        EnumWindows((h, p) => {
+            if (!IsWindowVisible(h)) return true;
+            var sb = new StringBuilder(512);
+            GetWindowText(h, sb, sb.Capacity);
+            if (sb.ToString() == title) { found = h.ToInt64(); return false; }
+            return true;
+        }, IntPtr.Zero);
+        return found;
     }
-  }
+}
+"@
+[WinFinder]::FindByExactTitle('${escaped}')
+`.trim()
 
-  // 2단계: 클래스명 없이 제목만으로 찾기
   try {
-    const hwnd = findWindowByTitleOnly(chatName)
-    if (hwnd !== BigInt(0)) return hwnd
+    const encoded = Buffer.from(script, 'utf16le').toString('base64')
+    const raw = execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`, {
+      encoding: 'buffer',
+      timeout: 8000,
+      windowsHide: true,
+    })
+    const val = parseInt(raw.toString('utf8').trim(), 10)
+    return isNaN(val) || val === 0 ? null : BigInt(val)
   } catch {
-    // ignore
+    return null
   }
-
-  return null
 }
 
 /* ── 카카오톡 실행 여부 확인 ── */
