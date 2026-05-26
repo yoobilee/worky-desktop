@@ -25,10 +25,23 @@ function runPSTempFile(scriptBody: string, timeout = 15000): string {
 
 /* ── 한글 → PowerShell [char]0xXXXX 변환 ── */
 function toPSUnicode(str: string): string {
-  return [...str].map((c) => {
-    const code = c.charCodeAt(0)
-    return code > 127 ? `[char]0x${code.toString(16)}` : c
-  }).join('+')
+  const parts: string[] = []
+  for (let i = 0; i < str.length; ) {
+    const code = str.codePointAt(i)!
+    if (code > 127) {
+      if (code > 0xFFFF) {
+        parts.push(`[char]::ConvertFromUtf32(0x${code.toString(16)})`)
+        i += 2
+      } else {
+        parts.push(`[char]0x${code.toString(16)}`)
+        i += 1
+      }
+    } else {
+      parts.push(str[i])
+      i += 1
+    }
+  }
+  return parts.join('+')
 }
 
 /* ── 채팅방: 찾기 + 활성화 ── */
@@ -38,6 +51,7 @@ function findAndActivateWindow(chatName: string): 'ok' | 'not_found' | 'error' {
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 $chatName = ${escaped}
+if (-not ([System.Management.Automation.PSTypeName]'WinActivate').Type) {
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
@@ -70,6 +84,7 @@ public class WinActivate {
     }
 }
 "@
+}
 [WinActivate]::FindAndActivate($chatName)
 `.trimStart()
 
@@ -112,69 +127,6 @@ export function launchKakao(): boolean {
   return true
 }
 
-/* ── 디버그: KakaoTalk 관련 창 목록 ── */
-export function listKakaoWindows(): string[] {
-  if (!isWindows) return []
-  const script = `
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
-Add-Type @"
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
-public class WinList {
-    [DllImport("user32.dll")]
-    private static extern bool EnumWindows(EnumWindowsProc e, IntPtr p);
-    private delegate bool EnumWindowsProc(IntPtr h, IntPtr p);
-    [DllImport("user32.dll", CharSet=CharSet.Unicode)]
-    private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
-    [DllImport("user32.dll")]
-    private static extern bool IsWindowVisible(IntPtr h);
-    [DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
-    public static string[] List() {
-        var results = new List<string>();
-        EnumWindows((h, p) => {
-            if (!IsWindowVisible(h)) return true;
-            var sb = new StringBuilder(512);
-            int len = GetWindowText(h, sb, sb.Capacity);
-            if (len == 0) return true;
-            string title = sb.ToString();
-            uint pid = 0;
-            GetWindowThreadProcessId(h, out pid);
-            bool isKakao = false;
-            try {
-                var proc = Process.GetProcessById((int)pid);
-                isKakao = proc.ProcessName.IndexOf("KakaoTalk", StringComparison.OrdinalIgnoreCase) >= 0;
-            } catch {}
-            bool titleMatch = title.IndexOf("kakao", StringComparison.OrdinalIgnoreCase) >= 0;
-            if (isKakao || titleMatch) results.Add(title);
-            return true;
-        }, IntPtr.Zero);
-        return results.ToArray();
-    }
-}
-"@
-[WinList]::List() | ForEach-Object { $_ }
-`.trimStart()
-
-  try {
-    const ps1Path = path.join(os.tmpdir(), `worky_kakao_list_${Date.now()}.ps1`)
-    fs.writeFileSync(ps1Path, '﻿' + script, { encoding: 'utf8' })
-    const proc = spawnSync(
-      'powershell',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ps1Path],
-      { encoding: 'buffer', timeout: 10000, windowsHide: true },
-    )
-    try { fs.unlinkSync(ps1Path) } catch { /* ignore */ }
-    const output = proc.stdout?.toString('utf8').trim() ?? ''
-    return output ? output.split('\n').map((l) => l.trim()).filter(Boolean) : []
-  } catch {
-    return []
-  }
-}
 
 /* ── 채팅방 열기 (메인 진입점) ── */
 export async function openKakaoChat(
