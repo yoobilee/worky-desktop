@@ -26,11 +26,14 @@ function createWindow() {
       nodeIntegration: false,
     },
     frame: false,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0a0a12',
     show: false,
   })
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
+  nativeTheme.on('updated', () => {
+    mainWindow?.webContents.send('theme:updated', nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
+  })
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
@@ -50,8 +53,12 @@ ipcMain.on('open-external', (_e, url: string) => shell.openExternal(url))
 ipcMain.handle('kakao:open-chat', (_e, chatName: string) => openKakaoChat(chatName))
 ipcMain.handle('theme:set', (_e, theme: 'light' | 'dark' | 'system') => {
   nativeTheme.themeSource = theme
+  mainWindow?.webContents.send('theme:updated', nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
 })
-ipcMain.handle('theme:get', () => nativeTheme.themeSource)
+ipcMain.handle('theme:get', () => ({
+  source: nativeTheme.themeSource,
+  resolved: nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+}))
 ipcMain.handle('kakao:is-running', () => isKakaoRunning())
 ipcMain.handle('kakao:launch', () => launchKakao())
 

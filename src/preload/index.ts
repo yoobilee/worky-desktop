@@ -22,7 +22,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   theme: {
     set: (theme: 'light' | 'dark' | 'system'): Promise<void> =>
       ipcRenderer.invoke('theme:set', theme),
-    get: (): Promise<'light' | 'dark' | 'system'> =>
+    get: (): Promise<{ source: 'light' | 'dark' | 'system'; resolved: 'dark' | 'light' }> =>
       ipcRenderer.invoke('theme:get'),
+    onUpdated: (callback: (resolved: 'dark' | 'light') => void) => {
+      ipcRenderer.on('theme:updated', (_e, resolved) => callback(resolved))
+    },
   },
 })

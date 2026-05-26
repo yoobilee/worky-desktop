@@ -1,26 +1,27 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  IconBuilding, IconSearch, IconArrowsSort,
-  IconLoader2, IconCircleCheck, IconCircleX, IconClock, IconPlayerPlay,
-  IconCalendar, IconMessageCircle, IconPencil, IconCheck, IconX,
+  IconBuilding, IconSearch,
+  IconLoader2, IconCalendar,
+  IconMessageCircle, IconPencil, IconCheck, IconX,
   IconCopy, IconChevronDown, IconLogout, IconSettings, IconUser,
-  IconRefresh, IconPhone,
+  IconRefresh, IconPhone, IconArrowsSort,
 } from '@tabler/icons-react'
 import type { Client, ReportStatus, SortOrder } from '../types'
 import { fetchClients, updateClientStatus, updateKakaoChat, updateReportTemplate } from '../lib/clients'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
-/* ── 상태 설정 ── */
+/* ── 상태 팔레트 ── */
 const STATUS_CONFIG: Record<ReportStatus, {
   label: string
-  dot: string
-  badge: string
+  line: string       // 왼쪽 컬러 라인
+  dot: string        // 상태 점
+  badge: string      // 뱃지 클래스
 }> = {
-  pending:    { label: '대기 중', dot: 'bg-slate-500',   badge: 'text-slate-400 bg-slate-800/80 border-slate-700' },
-  inprogress: { label: '진행 중', dot: 'bg-blue-500',    badge: 'text-blue-400 bg-blue-950/60 border-blue-800/60' },
-  complete:   { label: '완료',   dot: 'bg-emerald-500', badge: 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60' },
-  stopped:    { label: '중단',   dot: 'bg-red-500',     badge: 'text-red-400 bg-red-950/60 border-red-800/60' },
+  inprogress: { label: '진행 중', line: 'bg-[#6C63FF]',  dot: 'bg-[#6C63FF]',  badge: 'text-[#9B8FFF] bg-[#6C63FF]/10 border-[#6C63FF]/20' },
+  pending:    { label: '대기 중', line: 'bg-[#6b6b8a]',  dot: 'bg-[#6b6b8a]',  badge: 'text-[#9090aa] bg-white/5 border-white/10' },
+  complete:   { label: '완료',   line: 'bg-[#22c55e]',  dot: 'bg-[#22c55e]',  badge: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+  stopped:    { label: '중단',   line: 'bg-[#ef4444]',  dot: 'bg-[#ef4444]',  badge: 'text-red-400 bg-red-500/10 border-red-500/20' },
 }
 
 const STATUS_ORDER: ReportStatus[] = ['inprogress', 'pending', 'complete', 'stopped']
@@ -57,24 +58,22 @@ function getDday(endDate: string): number {
 }
 
 function formatDday(dday: number): { text: string; cls: string } {
-  if (dday < 0)  return { text: `D+${Math.abs(dday)}`, cls: 'text-slate-600' }
+  if (dday < 0)   return { text: `D+${Math.abs(dday)}`, cls: 'text-[#6b6b8a]' }
   if (dday === 0) return { text: 'D-Day', cls: 'text-red-400 font-bold' }
   if (dday <= 3)  return { text: `D-${dday}`, cls: 'text-red-400 font-semibold' }
   if (dday <= 7)  return { text: `D-${dday}`, cls: 'text-orange-400' }
-  return { text: `D-${dday}`, cls: 'text-slate-500' }
+  return { text: `D-${dday}`, cls: 'text-[#6b6b8a]' }
 }
 
 /* ── 토스트 훅 ── */
 function useToast() {
   const [toast, setToast] = useState<{ ok: boolean; msg: string } | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   function show(ok: boolean, msg: string) {
     if (timerRef.current) clearTimeout(timerRef.current)
     setToast({ ok, msg })
-    timerRef.current = setTimeout(() => setToast(null), 2500)
+    timerRef.current = setTimeout(() => setToast(null), 2200)
   }
-
   return { toast, show }
 }
 
@@ -94,13 +93,11 @@ function ClientItem({
   const [statusOpen, setStatusOpen] = useState(false)
   const statusRef = useRef<HTMLDivElement>(null)
 
-  /* 카카오 상태 */
   const [kakaoEditing, setKakaoEditing] = useState(false)
   const [kakaoVal, setKakaoVal] = useState(client.kakaoChat)
   const [kakaoLoading, setKakaoLoading] = useState(false)
   const kakaoInputRef = useRef<HTMLInputElement>(null)
 
-  /* 보고 템플릿 상태 */
   const [tplEditing, setTplEditing] = useState(false)
   const [tplVal, setTplVal] = useState(client.reportTemplate)
   const [copied, setCopied] = useState(false)
@@ -113,7 +110,6 @@ function ClientItem({
   const dday = contractEnd ? getDday(contractEnd) : null
   const ddayFmt = dday != null ? formatDday(dday) : null
 
-  /* 상태 드롭다운 외부 클릭 닫기 */
   useEffect(() => {
     if (!statusOpen) return
     const h = (e: MouseEvent) => {
@@ -126,8 +122,9 @@ function ClientItem({
 
   async function handleKakaoOpen() {
     if (!client.kakaoChat) {
+      setExpanded(true)
       setKakaoEditing(true)
-      setTimeout(() => kakaoInputRef.current?.focus(), 50)
+      setTimeout(() => kakaoInputRef.current?.focus(), 80)
       return
     }
     setKakaoLoading(true)
@@ -154,57 +151,79 @@ function ClientItem({
   async function handleCopy() {
     const text = client.reportTemplate.trim()
     if (!text) {
+      setExpanded(true)
       setTplEditing(true)
-      setTimeout(() => tplInputRef.current?.focus(), 50)
+      setTimeout(() => tplInputRef.current?.focus(), 80)
       return
     }
     await navigator.clipboard.writeText(text)
     setCopied(true)
-    showToast(true, '클립보드에 복사됐습니다')
+    showToast(true, '복사 완료')
     setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div className="relative">
+    <div className="relative group">
       {/* 토스트 */}
       {toast && (
         <div
           className={[
-            'absolute top-0 left-0 right-0 z-50 mx-2 -translate-y-full -mt-1 px-3 py-1.5 rounded-lg text-xs font-medium text-center shadow-lg pointer-events-none',
+            'absolute -top-1 left-4 right-4 z-50 -translate-y-full px-3 py-1 rounded-lg text-[10px] font-medium text-center pointer-events-none shadow-lg',
             toast.ok
-              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
-              : 'bg-red-950 text-red-300 border border-red-800/60',
+              ? 'bg-emerald-950/95 text-emerald-300 border border-emerald-800/50'
+              : 'bg-red-950/95 text-red-300 border border-red-800/50',
           ].join(' ')}
         >
           {toast.msg}
         </div>
       )}
 
-      <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl overflow-hidden hover:border-white/[0.12] transition-colors">
+      <div
+        className="relative overflow-hidden rounded-xl border transition-all duration-200"
+        style={{
+          background: 'rgba(255,255,255,0.03)',
+          backdropFilter: 'blur(12px)',
+          borderColor: 'rgba(255,255,255,0.07)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(108,99,255,0.3)'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+        }}
+      >
+        {/* 왼쪽 상태 라인 */}
+        <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${cfg.line} transition-colors`} />
+
         {/* 메인 행 */}
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          {/* 상태 점 + 이름 */}
+        <div className="flex items-center gap-2 pl-4 pr-2.5 py-2.5">
+          {/* 거래처명 + D-day */}
           <button
-            className="flex items-center gap-2 flex-1 min-w-0 text-left"
+            className="flex-1 min-w-0 text-left flex items-center gap-2"
             onClick={() => setExpanded((v) => !v)}
           >
-            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
-            <span className="text-[13px] font-semibold text-white/90 truncate">{client.name}</span>
+            <span className="text-[13px] font-semibold text-[#f0f0ff] truncate leading-none">{client.name}</span>
             {ddayFmt && dday! <= 7 && (
               <span className={`text-[10px] font-bold shrink-0 ${ddayFmt.cls}`}>{ddayFmt.text}</span>
             )}
           </button>
 
-          {/* 상태 뱃지 드롭다운 */}
+          {/* 상태 드롭다운 */}
           <div className="relative shrink-0" ref={statusRef}>
             <button
               onClick={(e) => { e.stopPropagation(); setStatusOpen((v) => !v) }}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cfg.badge} transition-colors`}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${cfg.badge} transition-colors`}
             >
+              <div className={`w-1 h-1 rounded-full ${cfg.dot}`} />
               {cfg.label}
             </button>
             {statusOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 bg-[#1a1d24] rounded-xl border border-white/10 shadow-2xl overflow-hidden min-w-[100px]">
+              <div
+                className="absolute right-0 top-full mt-1 z-50 rounded-xl border shadow-2xl overflow-hidden min-w-[96px]"
+                style={{ background: '#14141f', borderColor: 'rgba(255,255,255,0.1)' }}
+              >
                 {STATUS_ORDER.map((s) => (
                   <button
                     key={s}
@@ -212,11 +231,11 @@ function ClientItem({
                     className={[
                       'flex items-center gap-2 w-full px-3 py-2 text-[11px] font-semibold transition-colors',
                       client.status === s
-                        ? `${STATUS_CONFIG[s].badge} bg-white/5`
-                        : 'text-white/50 hover:text-white/80 hover:bg-white/5',
+                        ? `${STATUS_CONFIG[s].badge}`
+                        : 'text-[#6b6b8a] hover:text-[#f0f0ff] hover:bg-white/5',
                     ].join(' ')}
                   >
-                    <div className={`w-1.5 h-1.5 rounded-full ${STATUS_CONFIG[s].dot}`} />
+                    <div className={`w-1 h-1 rounded-full ${STATUS_CONFIG[s].dot}`} />
                     {STATUS_CONFIG[s].label}
                   </button>
                 ))}
@@ -224,22 +243,27 @@ function ClientItem({
             )}
           </div>
 
-          {/* 카톡 버튼 */}
+          {/* 액션 버튼 영역 */}
           {kakaoEditing ? (
             <div className="flex items-center gap-1 shrink-0">
               <input
                 ref={kakaoInputRef}
                 value={kakaoVal}
                 onChange={(e) => setKakaoVal(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleKakaoSave(); if (e.key === 'Escape') { setKakaoEditing(false); setKakaoVal(client.kakaoChat) } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleKakaoSave()
+                  if (e.key === 'Escape') { setKakaoEditing(false); setKakaoVal(client.kakaoChat) }
+                }}
                 placeholder="채팅방 이름"
-                className="w-24 px-2 py-0.5 rounded-lg bg-white/5 border border-[#FAD709]/30 text-[11px] text-white/80 placeholder-white/20 focus:outline-none focus:border-[#FAD709]/60"
+                className="w-20 px-2 py-0.5 rounded-lg text-[11px] text-[#f0f0ff] placeholder-[#6b6b8a] focus:outline-none focus:border-[#6C63FF]/50"
+                style={{ background: 'rgba(108,99,255,0.1)', border: '1px solid rgba(108,99,255,0.25)' }}
               />
-              <button onClick={handleKakaoSave} className="p-0.5 text-[#FAD709]/70 hover:text-[#FAD709]"><IconCheck size={11} /></button>
-              <button onClick={() => { setKakaoEditing(false); setKakaoVal(client.kakaoChat) }} className="p-0.5 text-white/30 hover:text-white/60"><IconX size={11} /></button>
+              <button onClick={handleKakaoSave} className="p-0.5 text-[#6C63FF]/80 hover:text-[#6C63FF]"><IconCheck size={11} /></button>
+              <button onClick={() => { setKakaoEditing(false); setKakaoVal(client.kakaoChat) }} className="p-0.5 text-[#6b6b8a] hover:text-[#f0f0ff]"><IconX size={11} /></button>
             </div>
           ) : (
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-0.5 shrink-0">
+              {/* 카카오 버튼 */}
               <button
                 onClick={handleKakaoOpen}
                 disabled={kakaoLoading}
@@ -247,62 +271,66 @@ function ClientItem({
                 className={[
                   'flex items-center justify-center w-6 h-6 rounded-lg transition-colors',
                   client.kakaoChat
-                    ? 'text-[#FAD709]/80 bg-[#FAD709]/10 hover:bg-[#FAD709]/20'
-                    : 'text-white/20 bg-white/5 hover:bg-white/10',
+                    ? 'text-[#6C63FF]/80 bg-[#6C63FF]/10 hover:bg-[#6C63FF]/20 hover:text-[#6C63FF]'
+                    : 'text-[#6b6b8a]/50 hover:bg-white/5 hover:text-[#6b6b8a]',
                 ].join(' ')}
               >
                 {kakaoLoading ? <IconLoader2 size={12} className="animate-spin" /> : <IconMessageCircle size={12} />}
               </button>
+
               {/* 보고 복사 버튼 */}
               <button
                 onClick={handleCopy}
-                title={client.reportTemplate ? '보고 메시지 복사' : '보고 템플릿 등록'}
+                title={client.reportTemplate ? '보고 메시지 복사' : '템플릿 등록'}
                 className={[
                   'flex items-center justify-center w-6 h-6 rounded-lg transition-colors',
                   client.reportTemplate
                     ? copied
                       ? 'text-emerald-400 bg-emerald-500/15'
-                      : 'text-white/50 bg-white/5 hover:bg-white/10 hover:text-white/80'
-                    : 'text-white/20 bg-white/5 hover:bg-white/10',
+                      : 'text-[#6b6b8a] hover:bg-white/5 hover:text-[#f0f0ff]'
+                    : 'text-[#6b6b8a]/50 hover:bg-white/5 hover:text-[#6b6b8a]',
                 ].join(' ')}
               >
                 {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
               </button>
+
               {/* 펼치기 */}
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="flex items-center justify-center w-6 h-6 rounded-lg text-white/20 hover:text-white/50 transition-colors"
+                className="flex items-center justify-center w-6 h-6 rounded-lg text-[#6b6b8a]/50 hover:text-[#6b6b8a] transition-colors"
               >
-                <IconChevronDown size={12} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                <IconChevronDown
+                  size={12}
+                  style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1)' }}
+                />
               </button>
             </div>
           )}
         </div>
 
         {/* 확장 패널 */}
-        {expanded && (
-          <div className="px-3 pb-3 border-t border-white/[0.05] pt-2.5 space-y-2">
+        <div
+          style={{
+            maxHeight: expanded ? '400px' : '0',
+            opacity: expanded ? 1 : 0,
+            overflow: 'hidden',
+            transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+          }}
+        >
+          <div className="pl-4 pr-3 pb-3 pt-0 space-y-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+            <div className="h-1" />
+
             {/* 담당자 / 전화 */}
             {(client.contact || client.phone) && (
-              <div className="flex items-center gap-3 text-[11px] text-white/40">
-                {client.contact && (
-                  <span className="flex items-center gap-1">
-                    <IconUser size={10} className="shrink-0" />
-                    {client.contact}
-                  </span>
-                )}
-                {client.phone && (
-                  <span className="flex items-center gap-1">
-                    <IconPhone size={10} className="shrink-0" />
-                    {client.phone}
-                  </span>
-                )}
+              <div className="flex items-center gap-3 text-[11px] text-[#6b6b8a]">
+                {client.contact && <span className="flex items-center gap-1"><IconUser size={10} className="shrink-0" />{client.contact}</span>}
+                {client.phone && <span className="flex items-center gap-1"><IconPhone size={10} className="shrink-0" />{client.phone}</span>}
               </div>
             )}
 
-            {/* D-day + 날짜 */}
+            {/* D-day */}
             {contractEnd && ddayFmt && (
-              <div className="flex items-center gap-1.5 text-[11px] text-white/30">
+              <div className="flex items-center gap-1.5 text-[11px] text-[#6b6b8a]">
                 <IconCalendar size={10} className="shrink-0" />
                 <span>{contractEnd}</span>
                 <span className={`ml-auto text-[10px] font-semibold ${ddayFmt.cls}`}>{ddayFmt.text}</span>
@@ -313,7 +341,7 @@ function ClientItem({
             {client.tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {client.tags.map((t) => (
-                  <span key={t} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#6C63FF]/15 text-[#9B8FFF]/80">
+                  <span key={t} className="px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: 'rgba(108,99,255,0.12)', color: 'rgba(155,143,255,0.7)' }}>
                     {t}
                   </span>
                 ))}
@@ -322,35 +350,41 @@ function ClientItem({
 
             {/* 메모 */}
             {client.memo && (
-              <p className="text-[11px] text-white/30 leading-relaxed line-clamp-2">{client.memo}</p>
+              <p className="text-[11px] text-[#6b6b8a] leading-relaxed line-clamp-2">{client.memo}</p>
             )}
 
-            {/* 카카오 채팅방 편집 (확장 시) */}
+            {/* 카카오 채팅방 */}
             {client.kakaoChat && (
-              <div className="flex items-center gap-1.5 text-[11px] text-white/30">
-                <IconMessageCircle size={10} className="text-[#FAD709]/50 shrink-0" />
-                <span className="text-[#FAD709]/50">{client.kakaoChat}</span>
+              <div className="flex items-center gap-1.5 text-[11px] text-[#6b6b8a]">
+                <IconMessageCircle size={10} className="text-[#6C63FF]/60 shrink-0" />
+                <span className="text-[#9B8FFF]/60 truncate">{client.kakaoChat}</span>
                 <button
                   onClick={() => { setKakaoEditing(true); setTimeout(() => kakaoInputRef.current?.focus(), 50) }}
-                  className="ml-auto text-white/20 hover:text-white/50 transition-colors"
+                  className="ml-auto text-[#6b6b8a]/40 hover:text-[#6b6b8a] transition-colors"
                 >
                   <IconPencil size={10} />
                 </button>
               </div>
             )}
 
-            {/* 보고 메시지 템플릿 */}
-            <div className="space-y-1">
+            {/* 보고 템플릿 */}
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-white/25 font-medium uppercase tracking-wider">보고 템플릿</span>
-                <div className="flex items-center gap-1">
+                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(107,107,138,0.6)' }}>보고 템플릿</span>
+                <div className="flex items-center gap-1.5">
                   {tplEditing ? (
                     <>
-                      <button onClick={handleTplSave} className="text-[10px] text-emerald-400/70 hover:text-emerald-400 transition-colors flex items-center gap-0.5"><IconCheck size={10} />저장</button>
-                      <button onClick={() => { setTplEditing(false); setTplVal(client.reportTemplate) }} className="text-[10px] text-white/25 hover:text-white/50 transition-colors">취소</button>
+                      <button onClick={handleTplSave} className="text-[10px] text-emerald-400/70 hover:text-emerald-400 transition-colors flex items-center gap-0.5">
+                        <IconCheck size={10} />저장
+                      </button>
+                      <button onClick={() => { setTplEditing(false); setTplVal(client.reportTemplate) }} className="text-[10px] text-[#6b6b8a]/50 hover:text-[#6b6b8a] transition-colors">
+                        취소
+                      </button>
                     </>
                   ) : (
-                    <button onClick={() => { setTplEditing(true); setTimeout(() => tplInputRef.current?.focus(), 50) }} className="text-white/20 hover:text-white/50 transition-colors"><IconPencil size={10} /></button>
+                    <button onClick={() => { setTplEditing(true); setTimeout(() => tplInputRef.current?.focus(), 50) }} className="text-[#6b6b8a]/40 hover:text-[#6b6b8a] transition-colors">
+                      <IconPencil size={10} />
+                    </button>
                   )}
                 </div>
               </div>
@@ -360,17 +394,20 @@ function ClientItem({
                   value={tplVal}
                   onChange={(e) => setTplVal(e.target.value)}
                   rows={3}
-                  placeholder="복사할 보고 메시지 템플릿 입력..."
-                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] text-white/70 placeholder-white/20 focus:outline-none focus:border-[#6C63FF]/40 resize-none leading-relaxed"
+                  placeholder="복사할 보고 메시지 입력..."
+                  className="w-full px-2.5 py-2 rounded-lg text-[11px] text-[#f0f0ff] placeholder-[#6b6b8a]/50 focus:outline-none resize-none leading-relaxed"
+                  style={{ background: 'rgba(108,99,255,0.08)', border: '1px solid rgba(108,99,255,0.2)' }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(108,99,255,0.4)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(108,99,255,0.2)' }}
                 />
               ) : client.reportTemplate ? (
-                <p className="text-[11px] text-white/40 leading-relaxed line-clamp-3 whitespace-pre-wrap">{client.reportTemplate}</p>
+                <p className="text-[11px] text-[#6b6b8a] leading-relaxed line-clamp-3 whitespace-pre-wrap">{client.reportTemplate}</p>
               ) : (
-                <p className="text-[11px] text-white/20 italic">등록된 템플릿 없음</p>
+                <p className="text-[11px] italic" style={{ color: 'rgba(107,107,138,0.4)' }}>등록된 템플릿 없음</p>
               )}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
@@ -383,12 +420,23 @@ export default function ClientsPage({ user }: { user: User }) {
   const [search, setSearch] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('inprogress')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark')
+  const [themeSource, setThemeSource] = useState<'light' | 'dark' | 'system'>('dark')
+  const settingsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadClients()
-    window.electronAPI.theme.get().then(setTheme)
+    window.electronAPI.theme.get().then(({ source }) => setThemeSource(source))
   }, [user.id])
+
+  useEffect(() => {
+    if (!settingsOpen) return
+    const h = (e: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node))
+        setSettingsOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [settingsOpen])
 
   async function loadClients() {
     setLoading(true)
@@ -398,7 +446,7 @@ export default function ClientsPage({ user }: { user: User }) {
   }
 
   async function handleThemeChange(t: 'light' | 'dark' | 'system') {
-    setTheme(t)
+    setThemeSource(t)
     await window.electronAPI.theme.set(t)
     setSettingsOpen(false)
   }
@@ -457,41 +505,56 @@ export default function ClientsPage({ user }: { user: User }) {
   const cStopped    = clients.filter((c) => c.status === 'stopped').length
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* 검색 + 정렬 + 통계 한 줄 */}
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: '#0a0a12' }}>
+      {/* 상단 헤더 */}
       <div className="px-3 pt-2.5 pb-2 shrink-0 space-y-2">
+        {/* 검색 + 정렬 */}
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1">
-            <IconSearch size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/25" />
+            <IconSearch size={11} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(107,107,138,0.6)' }} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="거래처 검색"
-              className="w-full pl-7 pr-2.5 py-1.5 rounded-lg bg-white/5 border border-white/[0.08] text-[12px] text-white/80 placeholder-white/20 focus:outline-none focus:border-[#6C63FF]/40 transition-colors"
+              className="w-full pl-7 pr-3 py-1.5 rounded-full text-[12px] focus:outline-none transition-colors"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#f0f0ff',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(108,99,255,0.4)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
             />
           </div>
           <button
             onClick={() => setSortOrder((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length])}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] text-white/40 border border-white/[0.08] hover:border-white/15 hover:text-white/60 transition-colors whitespace-nowrap"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(107,107,138,0.8)' }}
           >
-            <IconArrowsSort size={11} />
+            <IconArrowsSort size={10} />
             {SORT_LABELS[sortOrder]}
           </button>
-          <button onClick={loadClients} className="p-1.5 rounded-lg text-white/25 hover:text-white/55 hover:bg-white/5 transition-colors">
-            <IconRefresh size={13} />
+          <button
+            onClick={loadClients}
+            className="flex items-center justify-center w-7 h-7 rounded-full transition-colors"
+            style={{ color: 'rgba(107,107,138,0.6)' }}
+          >
+            <IconRefresh size={12} />
           </button>
         </div>
 
-        {/* 통계 바 */}
+        {/* 프로그레스 바 + 카운트 */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-0.5 bg-white/5 rounded-full overflow-hidden flex">
-            {total > 0 && <>
-              <div style={{ width: `${(cInprogress / total) * 100}%` }} className="bg-blue-500 transition-all" />
-              <div style={{ width: `${(cComplete / total) * 100}%` }} className="bg-emerald-500 transition-all" />
-              <div style={{ width: `${(cStopped / total) * 100}%` }} className="bg-red-400 transition-all" />
-            </>}
+          <div className="flex-1 h-[2px] rounded-full overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            {total > 0 && (
+              <>
+                <div style={{ width: `${(cInprogress / total) * 100}%`, background: '#6C63FF', transition: 'width 0.4s ease' }} />
+                <div style={{ width: `${(cComplete / total) * 100}%`, background: '#22c55e', transition: 'width 0.4s ease' }} />
+                <div style={{ width: `${(cStopped / total) * 100}%`, background: '#ef4444', transition: 'width 0.4s ease' }} />
+              </>
+            )}
           </div>
-          <span className="text-[10px] text-white/25 shrink-0 tabular-nums">{total}개</span>
+          <span className="text-[10px] shrink-0 tabular-nums" style={{ color: 'rgba(107,107,138,0.5)' }}>{total}개</span>
         </div>
       </div>
 
@@ -499,11 +562,11 @@ export default function ClientsPage({ user }: { user: User }) {
       <div className="flex-1 overflow-y-auto px-3 pb-2 space-y-1.5">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <IconLoader2 size={20} className="text-white/20 animate-spin" />
+            <IconLoader2 size={18} className="animate-spin" style={{ color: 'rgba(108,99,255,0.4)' }} />
           </div>
         ) : sorted.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-white/20">
-            <IconBuilding size={32} className="mb-2" />
+          <div className="flex flex-col items-center justify-center py-20" style={{ color: 'rgba(107,107,138,0.5)' }}>
+            <IconBuilding size={28} className="mb-2" />
             <p className="text-[12px]">{search ? '검색 결과 없음' : '등록된 거래처 없음'}</p>
           </div>
         ) : (
@@ -519,39 +582,47 @@ export default function ClientsPage({ user }: { user: User }) {
         )}
       </div>
 
-      {/* 하단 푸터 — 사용자 + 설정 */}
-      <div className="shrink-0 px-3 py-2 border-t border-white/[0.05] flex items-center gap-2 relative">
-        <div className="w-6 h-6 rounded-full bg-[#6C63FF]/30 flex items-center justify-center shrink-0">
-          <span className="text-[10px] font-bold text-[#9B8FFF]">
-            {(user.email ?? '?')[0].toUpperCase()}
-          </span>
+      {/* 하단 푸터 */}
+      <div
+        className="shrink-0 px-3 py-2 flex items-center gap-2 relative"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        <div
+          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold"
+          style={{ background: 'rgba(108,99,255,0.2)', color: '#9B8FFF' }}
+        >
+          {(user.email ?? '?')[0].toUpperCase()}
         </div>
-        <span className="flex-1 text-[11px] text-white/30 truncate">{user.email}</span>
+        <span className="flex-1 text-[11px] truncate" style={{ color: 'rgba(107,107,138,0.6)' }}>{user.email}</span>
 
-        {/* 설정 버튼 */}
-        <div className="relative">
+        <div className="relative" ref={settingsRef}>
           <button
             onClick={() => setSettingsOpen((v) => !v)}
-            className="p-1.5 rounded-lg text-white/25 hover:text-white/55 hover:bg-white/5 transition-colors"
+            className="flex items-center justify-center w-6 h-6 rounded-lg transition-colors"
+            style={{ color: 'rgba(107,107,138,0.5)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(107,107,138,0.9)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(107,107,138,0.5)'; e.currentTarget.style.background = 'transparent' }}
           >
-            <IconSettings size={13} />
+            <IconSettings size={12} />
           </button>
 
           {settingsOpen && (
-            <div className="absolute bottom-full right-0 mb-1 bg-[#1a1d24] rounded-xl border border-white/10 shadow-2xl overflow-hidden min-w-[160px] z-50">
-              <div className="px-3 py-2 border-b border-white/[0.06]">
-                <p className="text-[10px] text-white/30 font-medium uppercase tracking-wider">테마</p>
-                <div className="flex gap-1 mt-1.5">
+            <div
+              className="absolute bottom-full right-0 mb-1 rounded-xl shadow-2xl overflow-hidden min-w-[156px] z-50"
+              style={{ background: '#14141f', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <div className="px-3 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] font-medium uppercase tracking-wider mb-1.5" style={{ color: 'rgba(107,107,138,0.6)' }}>테마</p>
+                <div className="flex gap-1">
                   {(['dark', 'light', 'system'] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => handleThemeChange(t)}
-                      className={[
-                        'flex-1 py-1 rounded-lg text-[10px] font-semibold transition-colors',
-                        theme === t
-                          ? 'bg-[#6C63FF]/30 text-[#9B8FFF]'
-                          : 'text-white/30 hover:bg-white/5 hover:text-white/60',
-                      ].join(' ')}
+                      className="flex-1 py-1 rounded-lg text-[10px] font-semibold transition-colors"
+                      style={themeSource === t
+                        ? { background: 'rgba(108,99,255,0.25)', color: '#9B8FFF' }
+                        : { color: 'rgba(107,107,138,0.7)' }
+                      }
                     >
                       {t === 'dark' ? '다크' : t === 'light' ? '라이트' : '시스템'}
                     </button>
@@ -560,9 +631,12 @@ export default function ClientsPage({ user }: { user: User }) {
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 w-full px-3 py-2.5 text-[12px] text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2.5 text-[11px] transition-colors"
+                style={{ color: 'rgba(239,68,68,0.7)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(239,68,68,0.7)'; e.currentTarget.style.background = 'transparent' }}
               >
-                <IconLogout size={13} />
+                <IconLogout size={12} />
                 로그아웃
               </button>
             </div>

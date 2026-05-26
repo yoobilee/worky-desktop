@@ -18,7 +18,8 @@ declare global {
       }
       theme: {
         set: (theme: 'light' | 'dark' | 'system') => Promise<void>
-        get: () => Promise<'light' | 'dark' | 'system'>
+        get: () => Promise<{ source: 'light' | 'dark' | 'system'; resolved: 'dark' | 'light' }>
+        onUpdated: (callback: (resolved: 'dark' | 'light') => void) => void
       }
     }
   }
