@@ -22,7 +22,7 @@ function palette(dark: boolean) {
     borderHover:  dark ? 'rgba(108,99,255,0.40)'      : 'rgba(108,99,255,0.45)',
     textPrimary:  dark ? '#ffffff'                    : '#1a1a2e',
     textSub:      dark ? '#a0a0c0'                    : '#4a4a6a',
-    textMuted:    dark ? 'rgba(130,130,170,0.6)'      : 'rgba(74,74,106,0.6)',
+    textMuted:    dark ? 'rgba(160,160,200,0.85)'      : 'rgba(74,74,106,0.80)',
     inputBg:      dark ? 'rgba(255,255,255,0.05)'     : 'rgba(108,99,255,0.06)',
     inputBorder:  dark ? 'rgba(255,255,255,0.09)'     : 'rgba(108,99,255,0.20)',
     popupBg:      dark ? '#111118'                    : '#ffffff',
@@ -573,7 +573,7 @@ export default function ClientsPage({ user }: { user: User }) {
       </div>
 
       {/* 리스트 */}
-      <div className="flex-1 overflow-y-auto px-3 pb-2 space-y-1.5">
+      <div className="flex-1 overflow-y-auto px-3 pb-2 space-y-1">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <IconLoader2 size={18} className="animate-spin" style={{ color: 'rgba(108,99,255,0.5)' }} />

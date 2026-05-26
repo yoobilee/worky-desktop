@@ -50,16 +50,16 @@ function BgBlobs({ dark }: { dark: boolean }) {
         width: 320, height: 320,
         background: '#6C63FF',
         borderRadius: '50%',
-        opacity: 0.45,
-        filter: 'blur(120px)',
+        opacity: 0.60,
+        filter: 'blur(110px)',
       }} />
       <div style={{
         position: 'absolute', bottom: -70, right: -50,
         width: 300, height: 300,
         background: '#a78bfa',
         borderRadius: '50%',
-        opacity: 0.40,
-        filter: 'blur(100px)',
+        opacity: 0.55,
+        filter: 'blur(90px)',
       }} />
     </div>
   )
