@@ -28,10 +28,10 @@ function useDark() {
 function palette(dark: boolean) {
   return {
     bg:           dark ? '#080810'                    : '#efefff',
-    card:         dark ? 'rgba(255,255,255,0.07)'     : 'rgba(255,255,255,0.85)',
-    cardHover:    dark ? 'rgba(255,255,255,0.11)'     : 'rgba(255,255,255,0.97)',
-    border:       dark ? 'rgba(255,255,255,0.08)'     : 'rgba(108,99,255,0.15)',
-    borderHover:  dark ? 'rgba(108,99,255,0.40)'      : 'rgba(108,99,255,0.50)',
+    card:         dark ? 'rgba(255,255,255,0.05)'     : 'rgba(255,255,255,0.60)',
+    cardHover:    dark ? 'rgba(255,255,255,0.09)'     : 'rgba(255,255,255,0.85)',
+    border:       dark ? 'rgba(255,255,255,0.10)'     : 'rgba(108,99,255,0.15)',
+    borderHover:  dark ? 'rgba(108,99,255,0.40)'      : 'rgba(108,99,255,0.45)',
     textPrimary:  dark ? '#ffffff'                    : '#1a1a2e',
     textSub:      dark ? '#a0a0c0'                    : '#4a4a6a',
     textMuted:    dark ? 'rgba(130,130,170,0.6)'      : 'rgba(74,74,106,0.6)',
@@ -253,7 +253,8 @@ function ClientItem({
         style={{
           background: hovered ? p.cardHover : p.card,
           border: `1px solid ${hovered ? p.borderHover : p.border}`,
-          backdropFilter: 'blur(12px)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -539,7 +540,7 @@ export default function ClientsPage({ user }: { user: User }) {
   const cStopped    = clients.filter((c) => c.status === 'stopped').length
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: p.bg }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'transparent' }}>
       {/* 헤더 */}
       <div className="px-3 pt-2.5 pb-2 shrink-0 space-y-2">
         <div className="flex items-center gap-1.5">
