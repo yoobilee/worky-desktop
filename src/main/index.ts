@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import path from 'path'
 import { openKakaoChat, isKakaoRunning, launchKakao } from './kakao'
 
@@ -15,10 +15,11 @@ let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    width: 380,
+    height: 700,
+    minWidth: 340,
+    minHeight: 500,
+    resizable: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -47,6 +48,10 @@ ipcMain.on('window:close', () => mainWindow?.close())
 ipcMain.on('open-external', (_e, url: string) => shell.openExternal(url))
 
 ipcMain.handle('kakao:open-chat', (_e, chatName: string) => openKakaoChat(chatName))
+ipcMain.handle('theme:set', (_e, theme: 'light' | 'dark' | 'system') => {
+  nativeTheme.themeSource = theme
+})
+ipcMain.handle('theme:get', () => nativeTheme.themeSource)
 ipcMain.handle('kakao:is-running', () => isKakaoRunning())
 ipcMain.handle('kakao:launch', () => launchKakao())
 

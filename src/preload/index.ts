@@ -19,4 +19,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     launch: (): Promise<boolean> =>
       ipcRenderer.invoke('kakao:launch'),
   },
+  theme: {
+    set: (theme: 'light' | 'dark' | 'system'): Promise<void> =>
+      ipcRenderer.invoke('theme:set', theme),
+    get: (): Promise<'light' | 'dark' | 'system'> =>
+      ipcRenderer.invoke('theme:get'),
+  },
 })

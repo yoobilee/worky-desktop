@@ -1,36 +1,33 @@
-import { IconMinus, IconSquare, IconX } from '@tabler/icons-react'
+import { IconMinus, IconX } from '@tabler/icons-react'
 
 export default function TitleBar() {
   const isWin = window.electronAPI.platform === 'win32'
 
   return (
-    <div className="drag-region flex items-center justify-between h-9 bg-slate-900 border-b border-slate-800 shrink-0 select-none">
-      <div className="flex items-center gap-2 px-4">
-        <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)' }}>
-          <span className="text-white text-[10px] font-black leading-none">W</span>
+    <div className="drag-region flex items-center justify-between h-8 bg-[#0d0f14] shrink-0 select-none border-b border-white/5">
+      <div className="flex items-center gap-2 px-3">
+        <div
+          className="w-4 h-4 rounded flex items-center justify-center shrink-0"
+          style={{ background: 'linear-gradient(135deg, #6C63FF, #9B8FFF)' }}
+        >
+          <span className="text-white text-[9px] font-black leading-none">W</span>
         </div>
-        <span className="text-xs font-semibold text-slate-400">Worky Desktop</span>
+        <span className="text-[11px] font-semibold text-white/40 tracking-wide">Worky</span>
       </div>
 
       {isWin && (
         <div className="no-drag flex items-center h-full">
           <button
             onClick={() => window.electronAPI.windowControls.minimize()}
-            className="flex items-center justify-center w-11 h-full text-slate-400 hover:bg-slate-700 hover:text-slate-100 transition-colors"
+            className="flex items-center justify-center w-9 h-full text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors"
           >
-            <IconMinus size={12} />
-          </button>
-          <button
-            onClick={() => window.electronAPI.windowControls.maximize()}
-            className="flex items-center justify-center w-11 h-full text-slate-400 hover:bg-slate-700 hover:text-slate-100 transition-colors"
-          >
-            <IconSquare size={11} />
+            <IconMinus size={11} />
           </button>
           <button
             onClick={() => window.electronAPI.windowControls.close()}
-            className="flex items-center justify-center w-11 h-full text-slate-400 hover:bg-red-500 hover:text-white transition-colors"
+            className="flex items-center justify-center w-9 h-full text-white/30 hover:text-white hover:bg-red-500/80 transition-colors"
           >
-            <IconX size={13} />
+            <IconX size={11} />
           </button>
         </div>
       )}

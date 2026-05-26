@@ -17,6 +17,7 @@ export interface Client {
   showGrassGrid: boolean
   createdAt: number
   kakaoChat: string
+  reportTemplate: string
 }
 
 export interface DbClient {
@@ -36,6 +37,7 @@ export interface DbClient {
   show_grass_grid: boolean
   created_at: string
   kakao_chat_name: string | null
+  report_template: string | null
 }
 
 export type SortOrder = 'inprogress' | 'pending' | 'expiry' | 'name'

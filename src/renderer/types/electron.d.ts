@@ -15,7 +15,11 @@ declare global {
         openChat: (chatName: string) => Promise<{ success: boolean; message: string }>
         isRunning: () => Promise<boolean>
         launch: () => Promise<boolean>
-        }
+      }
+      theme: {
+        set: (theme: 'light' | 'dark' | 'system') => Promise<void>
+        get: () => Promise<'light' | 'dark' | 'system'>
+      }
     }
   }
 }
