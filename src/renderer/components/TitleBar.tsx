@@ -4,7 +4,7 @@ export default function TitleBar() {
   const isWin = window.electronAPI.platform === 'win32'
 
   return (
-    <div className="drag-region flex items-center justify-between h-7 shrink-0 select-none bg-[#0a0a12] dark:bg-[#0a0a12] border-b border-white/[0.05]">
+    <div className="drag-region flex items-center justify-between h-7 shrink-0 select-none border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
       <div className="flex items-center gap-1.5 px-3">
         <div
           className="w-3.5 h-3.5 rounded flex items-center justify-center shrink-0"
