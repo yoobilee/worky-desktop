@@ -18,7 +18,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/renderer/*"]
-    }
+    },
+    "ignoreDeprecations": "5.0"
   },
   "include": ["src/renderer", "src/preload"],
   "references": [{ "path": "./tsconfig.node.json" }]

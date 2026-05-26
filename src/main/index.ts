@@ -29,7 +29,10 @@ function createWindow() {
     show: false,
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show()
+    if (!app.isPackaged) mainWindow?.webContents.openDevTools()
+  })
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
