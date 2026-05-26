@@ -59,3 +59,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(108, 99, 255, 0.45);
 }
+
+html:not(.dark) input::placeholder {
+  color: #4a4a6a;
+  opacity: 1;
+}

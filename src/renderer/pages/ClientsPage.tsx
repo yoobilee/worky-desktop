@@ -16,7 +16,7 @@ import { useDark } from '../hooks/useDark'
 function palette(dark: boolean) {
   return {
     bg:           dark ? '#080810'                    : '#efefff',
-    card:         dark ? 'rgba(255,255,255,0.05)'     : 'rgba(255,255,255,0.60)',
+    card:         dark ? 'rgba(255,255,255,0.05)'     : 'rgba(255,255,255,0.40)',
     cardHover:    dark ? 'rgba(255,255,255,0.09)'     : 'rgba(255,255,255,0.85)',
     border:       dark ? 'rgba(255,255,255,0.10)'     : 'rgba(108,99,255,0.15)',
     borderHover:  dark ? 'rgba(108,99,255,0.40)'      : 'rgba(108,99,255,0.45)',
@@ -429,7 +429,7 @@ function ClientItem({
               ) : client.reportTemplate ? (
                 <p className="text-[11px] leading-relaxed line-clamp-3 whitespace-pre-wrap" style={{ color: p.textSub }}>{client.reportTemplate}</p>
               ) : (
-                <p className="text-[11px] italic" style={{ color: p.textMuted }}>등록된 템플릿 없음</p>
+                <p className="text-[11px]" style={{ color: p.textMuted }}>등록된 템플릿 없음</p>
               )}
             </div>
           </div>
