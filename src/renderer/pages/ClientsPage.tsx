@@ -10,19 +10,7 @@ import type { Client, ReportStatus, SortOrder } from '../types'
 import { fetchClients, updateClientStatus, updateKakaoChat, updateReportTemplate } from '../lib/clients'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-
-/* ── 테마 감지 훅 ── */
-function useDark() {
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
-  useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setDark(document.documentElement.classList.contains('dark'))
-    )
-    obs.observe(document.documentElement, { attributeFilter: ['class'] })
-    return () => obs.disconnect()
-  }, [])
-  return dark
-}
+import { useDark } from '../hooks/useDark'
 
 /* ── 테마 색상 팔레트 ── */
 function palette(dark: boolean) {
@@ -249,7 +237,7 @@ function ClientItem({
       )}
 
       <div
-        className="relative overflow-hidden rounded-xl transition-all duration-200"
+        className="relative overflow-hidden rounded-2xl transition-all duration-200"
         style={{
           background: hovered ? p.cardHover : p.card,
           border: `1px solid ${hovered ? p.borderHover : p.border}`,
@@ -261,7 +249,7 @@ function ClientItem({
       >
         {/* 왼쪽 상태 컬러 라인 — 3px, 카드 높이 전체 */}
         <div
-          className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
+          className="absolute left-0 top-0 bottom-0 w-[5px] rounded-l-2xl"
           style={{ background: cfg.line }}
         />
 
@@ -271,11 +259,11 @@ function ClientItem({
             className="flex-1 min-w-0 text-left flex items-center gap-2"
             onClick={() => setExpanded((v) => !v)}
           >
-            <span className="text-[13px] font-semibold truncate leading-none" style={{ color: p.textPrimary }}>
+            <span className="text-[14px] font-bold truncate leading-none" style={{ color: p.textPrimary }}>
               {client.name}
             </span>
-            {ddayFmt && dday! <= 7 && (
-              <span className="text-[10px] font-bold shrink-0" style={{ color: ddayFmt.color }}>{ddayFmt.text}</span>
+            {ddayFmt && dday! <= 30 && (
+              <span className="text-[11px] font-medium shrink-0" style={{ color: ddayFmt.color }}>{ddayFmt.text}</span>
             )}
           </button>
 

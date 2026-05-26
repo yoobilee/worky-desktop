@@ -16,31 +16,28 @@ function BgBlobs({ dark }: { dark: boolean }) {
   if (dark) {
     return (
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-        {/* 좌상단 보라 블롭 */}
         <div style={{
-          position: 'absolute', top: -60, left: -60,
-          width: 220, height: 220,
+          position: 'absolute', top: -80, left: -80,
+          width: 320, height: 320,
           background: '#6C63FF',
           borderRadius: '50%',
-          opacity: 0.15,
+          opacity: 0.35,
           filter: 'blur(120px)',
         }} />
-        {/* 우하단 파랑 블롭 */}
         <div style={{
-          position: 'absolute', bottom: -60, right: -40,
-          width: 190, height: 190,
+          position: 'absolute', bottom: -80, right: -60,
+          width: 300, height: 300,
           background: '#4f8eff',
           borderRadius: '50%',
-          opacity: 0.10,
+          opacity: 0.28,
           filter: 'blur(100px)',
         }} />
-        {/* 중앙 인디고 블롭 */}
         <div style={{
-          position: 'absolute', top: '40%', left: '30%',
-          width: 260, height: 260,
+          position: 'absolute', top: '38%', left: '25%',
+          width: 340, height: 340,
           background: '#8b5cf6',
           borderRadius: '50%',
-          opacity: 0.07,
+          opacity: 0.18,
           filter: 'blur(150px)',
         }} />
       </div>
@@ -48,22 +45,20 @@ function BgBlobs({ dark }: { dark: boolean }) {
   }
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-      {/* 좌상단 보라 블롭 */}
       <div style={{
-        position: 'absolute', top: -50, left: -50,
-        width: 220, height: 220,
+        position: 'absolute', top: -70, left: -70,
+        width: 320, height: 320,
         background: '#6C63FF',
         borderRadius: '50%',
-        opacity: 0.12,
+        opacity: 0.45,
         filter: 'blur(120px)',
       }} />
-      {/* 우하단 연보라 블롭 */}
       <div style={{
-        position: 'absolute', bottom: -50, right: -30,
-        width: 190, height: 190,
+        position: 'absolute', bottom: -70, right: -50,
+        width: 300, height: 300,
         background: '#a78bfa',
         borderRadius: '50%',
-        opacity: 0.10,
+        opacity: 0.40,
         filter: 'blur(100px)',
       }} />
     </div>
