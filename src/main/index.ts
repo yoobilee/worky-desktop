@@ -28,6 +28,7 @@ function createWindow() {
     frame: false,
     backgroundColor: '#0a0a12',
     show: false,
+    icon: path.join(__dirname, '../../public/icon.png'),
   })
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
