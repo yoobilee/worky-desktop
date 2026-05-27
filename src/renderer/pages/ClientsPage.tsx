@@ -727,7 +727,7 @@ export default function ClientsPage({ user }: { user: User }) {
               <IconClock size={9} />
               <span className="text-[9px] font-medium uppercase tracking-wider">최근 열기</span>
             </div>
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }} onWheel={(e) => { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY }}>
               {recentOpens.slice(0, settings.recentMax).map((e) => (
                 <button
                   key={e.chatName}
