@@ -695,10 +695,14 @@ export default function ClientsPage({ user }: { user: User }) {
                 <button
                   key={e.chatName}
                   onClick={() => openRecentChat(e.chatName)}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] shrink-0 transition-colors"
-                  style={{ background: p.tagBg, color: p.tagText }}
-                  onMouseEnter={(ev) => { ev.currentTarget.style.background = 'rgba(108,99,255,0.20)' }}
-                  onMouseLeave={(ev) => { ev.currentTarget.style.background = p.tagBg }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] shrink-0 transition-colors"
+                  style={{
+                    background: dark ? 'rgba(255,255,255,0.10)' : 'rgba(108,99,255,0.15)',
+                    border: `1px solid ${dark ? 'rgba(255,255,255,0.2)' : 'rgba(108,99,255,0.3)'}`,
+                    color: dark ? p.textSub : '#1a1a2e',
+                  }}
+                  onMouseEnter={(ev) => { ev.currentTarget.style.background = dark ? 'rgba(255,255,255,0.15)' : 'rgba(108,99,255,0.22)' }}
+                  onMouseLeave={(ev) => { ev.currentTarget.style.background = dark ? 'rgba(255,255,255,0.10)' : 'rgba(108,99,255,0.15)' }}
                 >
                   <IconMessageCircle size={9} />
                   {e.clientName}
