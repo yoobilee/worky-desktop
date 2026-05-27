@@ -7,7 +7,7 @@ import {
   IconRefresh, IconPhone, IconArrowsSort,
 } from '@tabler/icons-react'
 import type { Client, ReportStatus, SortOrder } from '../types'
-import { fetchClients, updateClientStatus, updateKakaoChat, updateReportTemplate } from '../lib/clients'
+import { fetchClients, updateKakaoChat, updateReportTemplate } from '../lib/clients'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useDark } from '../hooks/useDark'
@@ -129,22 +129,17 @@ function useToast() {
 function ClientItem({
   client,
   dark,
-  onStatusChange,
   onKakaoChatSaved,
   onReportTemplateSaved,
 }: {
   client: Client
   dark: boolean
-  onStatusChange: (id: string, status: ReportStatus) => void
   onKakaoChatSaved: (id: string, name: string) => void
   onReportTemplateSaved: (id: string, tpl: string) => void
 }) {
   const p = palette(dark)
   const [expanded, setExpanded] = useState(false)
   const [hovered, setHovered] = useState(false)
-  const [statusOpen, setStatusOpen] = useState(false)
-  const statusRef = useRef<HTMLDivElement>(null)
-
   const [kakaoEditing, setKakaoEditing] = useState(false)
   const [kakaoVal, setKakaoVal] = useState(client.kakaoChat)
   const [kakaoLoading, setKakaoLoading] = useState(false)
@@ -162,15 +157,6 @@ function ClientItem({
   const dday = contractEnd ? getDday(contractEnd) : null
   const ddayFmt = dday != null ? formatDday(dday) : null
 
-  useEffect(() => {
-    if (!statusOpen) return
-    const h = (e: MouseEvent) => {
-      if (statusRef.current && !statusRef.current.contains(e.target as Node))
-        setStatusOpen(false)
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [statusOpen])
 
   async function handleKakaoOpen() {
     if (!client.kakaoChat) {
@@ -268,46 +254,9 @@ function ClientItem({
           </button>
 
           {/* 상태 뱃지 */}
-          <div className="relative shrink-0" ref={statusRef}>
-            <button
-              onClick={(e) => { e.stopPropagation(); setStatusOpen((v) => !v) }}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border transition-colors"
-              style={badgeStyle}
-            >
-              <div className={`w-1 h-1 rounded-full ${cfg.dot}`} />
-              {cfg.label}
-            </button>
-            {statusOpen && (
-              <div
-                className="absolute right-0 top-full mt-1 z-50 rounded-xl shadow-2xl overflow-hidden min-w-[96px]"
-                style={{ background: p.popupBg, border: `1px solid ${p.popupBorder}` }}
-              >
-                {STATUS_ORDER.map((s) => {
-                  const sc = STATUS_CONFIG[s]
-                  const sb = (dark ? sc.badgeDark : sc.badgeLight).split(';').reduce((acc, part) => {
-                    const [k, v] = part.split(':')
-                    if (k && v) acc[k.trim() as keyof React.CSSProperties] = v.trim() as never
-                    return acc
-                  }, {} as React.CSSProperties)
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => { onStatusChange(client.id, s); setStatusOpen(false) }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-[11px] font-semibold transition-colors"
-                      style={client.status === s
-                        ? sb
-                        : { color: p.textSub }
-                      }
-                      onMouseEnter={(e) => { if (client.status !== s) e.currentTarget.style.background = p.card }}
-                      onMouseLeave={(e) => { if (client.status !== s) e.currentTarget.style.background = 'transparent' }}
-                    >
-                      <div className={`w-1 h-1 rounded-full ${sc.dot}`} />
-                      {sc.label}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border shrink-0" style={badgeStyle}>
+            <div className={`w-1 h-1 rounded-full ${cfg.dot}`} />
+            {cfg.label}
           </div>
 
           {/* 액션 버튼 */}
@@ -479,18 +428,6 @@ export default function ClientsPage({ user }: { user: User }) {
     setSettingsOpen(false)
   }
 
-  function handleStatusChange(id: string, newStatus: ReportStatus) {
-    const today = new Date().toISOString().slice(0, 10)
-    setClients((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c
-        const updated = { ...c, status: newStatus, statusHistory: [...c.statusHistory, { date: today, status: newStatus }] }
-        updateClientStatus(id, newStatus, updated.statusHistory).catch(console.error)
-        return updated
-      }),
-    )
-  }
-
   const handleKakaoChatSaved = useCallback((id: string, name: string) => {
     setClients((prev) => prev.map((c) => c.id === id ? { ...c, kakaoChat: name } : c))
   }, [])
@@ -589,7 +526,6 @@ export default function ClientsPage({ user }: { user: User }) {
               key={c.id}
               client={c}
               dark={dark}
-              onStatusChange={handleStatusChange}
               onKakaoChatSaved={handleKakaoChatSaved}
               onReportTemplateSaved={handleReportTemplateSaved}
             />
