@@ -5,8 +5,8 @@
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "dist": "npm run build && electron-builder",
+    "build": "vite build && electron-builder",
+    "dist": "npm run build",
     "preview": "vite preview"
   },
   "keywords": [],
@@ -37,8 +37,9 @@
     "react-dom": "^18.3.1"
   },
   "build": {
-    "appId": "com.worky.desktop",
+    "appId": "com.worky.mini",
     "productName": "WORKY mini",
+    "icon": "public/icon.png",
     "directories": {
       "output": "release"
     },

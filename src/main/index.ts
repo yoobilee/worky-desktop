@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, shell, screen } from 'electron'
 import path from 'path'
+import http from 'http'
 import { openKakaoChat, isKakaoRunning, launchKakao } from './kakao'
 
 const isDev = process.env.NODE_ENV === 'development'
@@ -12,6 +13,33 @@ if (isDev) {
 }
 
 let mainWindow: BrowserWindow | null = null
+let callbackServer: http.Server | null = null
+
+function startCallbackServer() {
+  callbackServer = http.createServer((req, res) => {
+    const url = new URL(req.url ?? '/', 'http://localhost:7777')
+    if (url.pathname === '/callback') {
+      const code = url.searchParams.get('code')
+      const state = url.searchParams.get('state')
+
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      res.end(
+        `<html><head><meta charset="utf-8"></head><body>` +
+        `<script>window.close()</script>` +
+        `<p style="font-family:sans-serif;text-align:center;margin-top:40px">` +
+        `로그인 완료! 이 창이 자동으로 닫힙니다.</p></body></html>`
+      )
+
+      if (code) {
+        const callbackUrl = `http://localhost:7777/callback?code=${code}${state ? `&state=${state}` : ''}`
+        mainWindow?.webContents.send('deep-link', callbackUrl)
+      }
+    } else {
+      res.writeHead(404).end()
+    }
+  })
+  callbackServer.listen(7777)
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -101,6 +129,7 @@ if (!gotLock) {
   })
 
   app.whenReady().then(async () => {
+    startCallbackServer()
     createWindow()
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -113,5 +142,6 @@ if (!gotLock) {
 }
 
 app.on('window-all-closed', () => {
+  callbackServer?.close()
   if (process.platform !== 'darwin') app.quit()
 })

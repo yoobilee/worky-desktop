@@ -22,7 +22,7 @@ export default function LoginPage() {
       const { data, error: err } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'worky://auth/callback',
+          redirectTo: 'http://localhost:7777/callback',
           skipBrowserRedirect: true,
         },
       })
