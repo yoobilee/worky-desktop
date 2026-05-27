@@ -219,11 +219,13 @@ function ClientItem({
     <div className="relative">
       {toast && (
         <div
-          className="absolute -top-1 left-4 right-4 z-50 -translate-y-full px-3 py-1 rounded-lg text-[10px] font-medium text-center pointer-events-none shadow-lg"
-          style={toast.ok
-            ? { background: dark ? '#0d2018' : '#d1fae5', color: dark ? '#4ade80' : '#15803d', border: '1px solid rgba(34,197,94,0.3)' }
-            : { background: dark ? '#1f0d0d' : '#fee2e2', color: dark ? '#f87171' : '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }
-          }
+          className="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] px-4 py-1.5 rounded-lg text-[11px] font-medium text-center pointer-events-none shadow-lg whitespace-nowrap"
+          style={{
+            animation: 'slideDown 0.2s ease',
+            ...(toast.ok
+              ? { background: dark ? '#0d2018' : '#d1fae5', color: dark ? '#4ade80' : '#15803d', border: '1px solid rgba(34,197,94,0.3)' }
+              : { background: dark ? '#1f0d0d' : '#fee2e2', color: dark ? '#f87171' : '#dc2626', border: '1px solid rgba(239,68,68,0.3)' })
+          }}
         >
           {toast.msg}
         </div>
