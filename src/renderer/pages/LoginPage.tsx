@@ -42,10 +42,10 @@ export default function LoginPage() {
     <div className="h-full w-full flex items-center justify-center relative overflow-hidden" style={{ background: bg }}>
       {/* 배경 블롭 */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
-        <div className="absolute top-[-60px] left-[-60px] w-[260px] h-[260px] rounded-full opacity-20 blur-3xl"
-          style={{ background: dark ? '#6C63FF' : '#a09aff' }} />
-        <div className="absolute bottom-[-40px] right-[-40px] w-[200px] h-[200px] rounded-full opacity-15 blur-3xl"
-          style={{ background: dark ? '#8B85FF' : '#c4c0ff' }} />
+        <div className="absolute top-[-60px] left-[-60px] w-[260px] h-[260px] rounded-full opacity-35 blur-3xl"
+          style={{ background: dark ? '#6C63FF' : '#6C63FF' }} />
+        <div className="absolute bottom-[-40px] right-[-40px] w-[200px] h-[200px] rounded-full opacity-45 blur-3xl"
+          style={{ background: dark ? '#4f8eff' : '#a78bfa' }} />
       </div>
 
       <div className="relative w-full max-w-sm px-6">
