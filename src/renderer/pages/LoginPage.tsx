@@ -52,7 +52,11 @@ export default function LoginPage() {
         {/* 로고 + 타이틀 */}
         <div className="text-center mb-10">
           <div className="flex items-center justify-center mb-5">
-            <img src="/icon.png" width={64} height={64} className="rounded-2xl shadow-lg" />
+            <div style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
+                <path d="M5 8 L10 24 L16 13 L22 24 L27 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
           </div>
           <h1 className="text-2xl font-bold" style={{ color: textPrimary }}>WORKY mini</h1>
           <p className="text-sm mt-2" style={{ color: textSub }}>거래처 관리를 더 스마트하게</p>
