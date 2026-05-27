@@ -400,6 +400,42 @@ function ClientItem({
                 </button>
               </div>
             )}
+            {/* 그룹 */}
+            <div className="flex items-center gap-1.5">
+              <IconFolder size={10} style={{ color: p.textMuted, flexShrink: 0 }} />
+              {groupEditing ? (
+                <>
+                  <input
+                    ref={groupInputRef}
+                    value={groupVal}
+                    onChange={(e) => setGroupVal(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleGroupSave()
+                      if (e.key === 'Escape') { setGroupEditing(false); setGroupVal(client.groupName) }
+                    }}
+                    placeholder="그룹명 입력"
+                    className="flex-1 px-2 py-0.5 rounded text-[11px] focus:outline-none"
+                    style={{ background: p.inputBg, border: `1px solid rgba(108,99,255,0.3)`, color: p.textPrimary }}
+                  />
+                  <button onClick={handleGroupSave} className="flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-semibold shrink-0" style={{ background: '#6C63FF', color: '#fff' }}>
+                    <IconCheck size={9} />저장
+                  </button>
+                  <button onClick={() => { setGroupEditing(false); setGroupVal(client.groupName) }} className="px-2 py-0.5 rounded text-[10px] font-semibold shrink-0" style={{ border: `1px solid ${p.inputBorder}`, color: p.textMuted }}>
+                    취소
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-[11px]" style={{ color: client.groupName ? p.textSub : p.textMuted }}>
+                    {client.groupName || '그룹 없음'}
+                  </span>
+                  <button onClick={() => { setGroupEditing(true); setTimeout(() => groupInputRef.current?.focus(), 50) }} style={{ color: p.textMuted }}>
+                    <IconPencil size={10} />
+                  </button>
+                </>
+              )}
+            </div>
+
             {/* 보고 템플릿 */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -458,41 +494,6 @@ function ClientItem({
               )}
             </div>
 
-            {/* 그룹 */}
-            <div className="flex items-center gap-1.5">
-              <IconFolder size={10} style={{ color: p.textMuted, flexShrink: 0 }} />
-              {groupEditing ? (
-                <>
-                  <input
-                    ref={groupInputRef}
-                    value={groupVal}
-                    onChange={(e) => setGroupVal(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleGroupSave()
-                      if (e.key === 'Escape') { setGroupEditing(false); setGroupVal(client.groupName) }
-                    }}
-                    placeholder="그룹명 입력"
-                    className="flex-1 px-2 py-0.5 rounded text-[11px] focus:outline-none"
-                    style={{ background: p.inputBg, border: `1px solid rgba(108,99,255,0.3)`, color: p.textPrimary }}
-                  />
-                  <button onClick={handleGroupSave} className="flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-semibold shrink-0" style={{ background: '#6C63FF', color: '#fff' }}>
-                    <IconCheck size={9} />저장
-                  </button>
-                  <button onClick={() => { setGroupEditing(false); setGroupVal(client.groupName) }} className="px-2 py-0.5 rounded text-[10px] font-semibold shrink-0" style={{ border: `1px solid ${p.inputBorder}`, color: p.textMuted }}>
-                    취소
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span className="flex-1 text-[11px]" style={{ color: client.groupName ? p.textSub : p.textMuted }}>
-                    {client.groupName || '그룹 없음'}
-                  </span>
-                  <button onClick={() => { setGroupEditing(true); setTimeout(() => groupInputRef.current?.focus(), 50) }} style={{ color: p.textMuted }}>
-                    <IconPencil size={10} />
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -843,20 +844,23 @@ export default function ClientsPage({ user }: { user: User }) {
 
                 {/* 최근 열기 개수 */}
                 {settings.recentEnabled && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px]" style={{ color: p.textMuted }}>목록 개수</span>
-                      <span className="text-[10px] font-semibold" style={{ color: '#9B8FFF' }}>{settings.recentMax}개</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px]" style={{ color: p.textMuted }}>목록 개수</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => updateSettings({ recentMax: Math.max(5, settings.recentMax - 1) })}
+                        className="w-5 h-5 rounded flex items-center justify-center text-[12px] font-bold transition-colors"
+                        style={{ background: p.inputBg, color: p.textSub }}
+                        disabled={settings.recentMax <= 5}
+                      >−</button>
+                      <span className="text-[10px] font-semibold w-6 text-center" style={{ color: '#9B8FFF' }}>{settings.recentMax}개</span>
+                      <button
+                        onClick={() => updateSettings({ recentMax: Math.min(20, settings.recentMax + 1) })}
+                        className="w-5 h-5 rounded flex items-center justify-center text-[12px] font-bold transition-colors"
+                        style={{ background: p.inputBg, color: p.textSub }}
+                        disabled={settings.recentMax >= 20}
+                      >+</button>
                     </div>
-                    <input
-                      type="range"
-                      min={5}
-                      max={20}
-                      value={settings.recentMax}
-                      onChange={(e) => updateSettings({ recentMax: Number(e.target.value) })}
-                      className="w-full h-1 rounded-full appearance-none cursor-pointer"
-                      style={{ accentColor: '#6C63FF' }}
-                    />
                   </div>
                 )}
               </div>
