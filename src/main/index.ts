@@ -25,10 +25,12 @@ function startCallbackServer() {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
       res.end(
         `<html><head><meta charset="utf-8"></head>` +
-        `<body style="font-family:sans-serif;text-align:center;padding:60px;background:#f4f4ff;color:#1a1a2e">` +
-        `<div style="font-size:48px;margin-bottom:16px">✅</div>` +
-        `<h2 style="margin:0 0 8px">로그인 완료!</h2>` +
-        `<p style="color:#6b6b8a;margin:0">이 탭을 닫고 WORKY mini로 돌아가세요.</p>` +
+        `<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-align:center;padding:80px 40px;background:#efefff;color:#1a1a2e;margin:0">` +
+        `<div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#6C63FF,#8B85FF);margin-bottom:20px">` +
+        `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` +
+        `</div>` +
+        `<h2 style="margin:0 0 8px;font-size:20px;font-weight:700">로그인 완료!</h2>` +
+        `<p style="color:#6b6b8a;margin:0;font-size:14px">이 탭을 닫고 WORKY mini로 돌아가세요.</p>` +
         `</body></html>`
       )
 
