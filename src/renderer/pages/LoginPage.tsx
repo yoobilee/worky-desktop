@@ -41,7 +41,7 @@ export default function LoginPage() {
               <IconBriefcase size={32} color="white" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-100">Worky Desktop</h1>
+          <h1 className="text-2xl font-bold text-slate-100">WORKY mini</h1>
           <p className="text-slate-400 text-sm mt-2">거래처 관리를 더 스마트하게</p>
         </div>
 

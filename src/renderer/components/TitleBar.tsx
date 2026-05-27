@@ -25,7 +25,7 @@ export default function TitleBar() {
           className="text-[10px] font-semibold tracking-widest uppercase"
           style={{ color: textColor }}
         >
-          Worky
+          WORKY mini
         </span>
       </div>
 

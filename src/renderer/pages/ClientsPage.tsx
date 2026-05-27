@@ -4,7 +4,7 @@ import {
   IconLoader2, IconCalendar,
   IconMessageCircle, IconPencil, IconCheck, IconX,
   IconCopy, IconChevronDown, IconLogout, IconSettings, IconUser,
-  IconRefresh, IconPhone, IconArrowsSort,
+  IconRefresh, IconPhone, IconArrowsSort, IconTrash,
 } from '@tabler/icons-react'
 import type { Client, ReportStatus, SortOrder } from '../types'
 import { fetchClients, updateKakaoChat, updateReportTemplate } from '../lib/clients'
@@ -185,6 +185,13 @@ function ClientItem({
     setTplEditing(false)
   }
 
+  async function handleTplDelete() {
+    await updateReportTemplate(client.id, '')
+    onReportTemplateSaved(client.id, '')
+    setTplVal('')
+    setTplEditing(false)
+  }
+
   async function handleCopy() {
     const text = client.reportTemplate.trim()
     if (!text) {
@@ -353,13 +360,36 @@ function ClientItem({
                 <div className="flex items-center gap-1.5">
                   {tplEditing ? (
                     <>
-                      <button onClick={handleTplSave} className="text-[10px] flex items-center gap-0.5" style={{ color: '#22c55e' }}><IconCheck size={10} />저장</button>
-                      <button onClick={() => { setTplEditing(false); setTplVal(client.reportTemplate) }} className="text-[10px]" style={{ color: p.textMuted }}>취소</button>
+                      <button
+                        onClick={handleTplSave}
+                        className="flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-semibold"
+                        style={{ background: '#6C63FF', color: '#fff' }}
+                      >
+                        <IconCheck size={9} />저장
+                      </button>
+                      <button
+                        onClick={() => { setTplEditing(false); setTplVal(client.reportTemplate) }}
+                        className="flex items-center px-2 py-0.5 rounded text-[10px] font-semibold"
+                        style={{ border: `1px solid ${p.inputBorder}`, color: p.textMuted }}
+                      >
+                        취소
+                      </button>
                     </>
                   ) : (
-                    <button onClick={() => { setTplEditing(true); setTimeout(() => tplInputRef.current?.focus(), 50) }} style={{ color: p.textMuted }}>
-                      <IconPencil size={10} />
-                    </button>
+                    <>
+                      {client.reportTemplate && (
+                        <button
+                          onClick={handleTplDelete}
+                          style={{ color: p.textMuted }}
+                          title="템플릿 삭제"
+                        >
+                          <IconTrash size={10} />
+                        </button>
+                      )}
+                      <button onClick={() => { setTplEditing(true); setTimeout(() => tplInputRef.current?.focus(), 50) }} style={{ color: p.textMuted }}>
+                        <IconPencil size={10} />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

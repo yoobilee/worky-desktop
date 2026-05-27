@@ -38,7 +38,7 @@
   },
   "build": {
     "appId": "com.worky.desktop",
-    "productName": "Worky Desktop",
+    "productName": "WORKY mini",
     "directories": {
       "output": "release"
     },

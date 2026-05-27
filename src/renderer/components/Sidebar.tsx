@@ -29,8 +29,7 @@ export default function Sidebar({ activePage, onNavigate, user, onLogout }: Side
           <span className="text-white text-sm font-black leading-none">W</span>
         </div>
         <div>
-          <p className="text-sm font-bold text-slate-100 leading-none">Worky</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Desktop</p>
+          <p className="text-sm font-bold text-slate-100 leading-none">WORKY mini</p>
         </div>
       </div>
 
