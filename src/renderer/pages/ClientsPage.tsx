@@ -732,7 +732,7 @@ export default function ClientsPage({ user }: { user: User }) {
                 <button
                   key={e.chatName}
                   onClick={() => openRecentChat(e.chatName)}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] shrink-0 transition-colors"
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] min-w-0 max-w-[110px] transition-colors"
                   style={{
                     background: dark ? 'rgba(255,255,255,0.10)' : 'rgba(108,99,255,0.15)',
                     border: `1px solid ${dark ? 'rgba(255,255,255,0.2)' : 'rgba(108,99,255,0.3)'}`,
