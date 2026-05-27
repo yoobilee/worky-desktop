@@ -395,15 +395,15 @@ function ClientItem({
                   onBlur={(e) => { e.currentTarget.style.borderColor = p.inputBorder }}
                 />
               ) : client.reportTemplate ? (
-                <div className="group relative">
-                  <p className="text-[11px] leading-relaxed line-clamp-3 whitespace-pre-wrap pr-5" style={{ color: p.textSub }}>{client.reportTemplate}</p>
+                <div className="group flex items-center gap-1.5">
+                  <p className="text-[11px] leading-relaxed line-clamp-3 whitespace-pre-wrap flex-1" style={{ color: p.textSub }}>{client.reportTemplate}</p>
                   <button
                     onClick={handleTplDelete}
-                    className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 self-center"
                     style={{ color: p.textMuted }}
                     title="템플릿 삭제"
                   >
-                    <IconTrash size={10} />
+                    <IconTrash size={14} />
                   </button>
                 </div>
               ) : (
