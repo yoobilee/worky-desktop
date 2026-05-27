@@ -99,11 +99,15 @@ if (!gotLock) {
     mainWindow?.webContents.send('deep-link', url)
   })
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     createWindow()
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+    try {
+      const running = await isKakaoRunning()
+      if (!running) await launchKakao()
+    } catch { /* 카카오톡 없는 환경 무시 */ }
   })
 }
 
