@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, nativeTheme, shell, screen } from 'electron'
 import path from 'path'
 import { openKakaoChat, isKakaoRunning, launchKakao } from './kakao'
 
@@ -31,6 +31,20 @@ function createWindow() {
   })
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
+
+  const SNAP = 20
+  mainWindow.on('move', () => {
+    if (!mainWindow?.isAlwaysOnTop()) return
+    const [x, y] = mainWindow.getPosition()
+    const [w, h] = mainWindow.getSize()
+    const { width, height } = screen.getPrimaryDisplay().workArea
+    let nx = x, ny = y
+    if (x <= SNAP) nx = 0
+    else if (x + w >= width - SNAP) nx = width - w
+    if (y <= SNAP) ny = 0
+    else if (y + h >= height - SNAP) ny = height - h
+    if (nx !== x || ny !== y) mainWindow.setPosition(nx, ny)
+  })
   nativeTheme.on('updated', () => {
     mainWindow?.webContents.send('theme:updated', nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
   })
