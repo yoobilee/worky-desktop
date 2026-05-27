@@ -50,8 +50,7 @@
     ],
     "win": {
       "target": "nsis",
-      "sign": false,
-      "signingHashAlgorithms": null
+      "forceCodeSigning": false
     },
     "nsis": {
       "oneClick": false,
