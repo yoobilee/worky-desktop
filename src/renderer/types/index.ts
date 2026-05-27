@@ -18,6 +18,7 @@ export interface Client {
   createdAt: number
   kakaoChat: string
   reportTemplate: string
+  groupName: string
 }
 
 export interface DbClient {
@@ -38,6 +39,7 @@ export interface DbClient {
   created_at: string
   kakao_chat_name: string | null
   report_template: string | null
+  group_name: string | null
 }
 
 export type SortOrder = 'inprogress' | 'pending' | 'expiry' | 'name'

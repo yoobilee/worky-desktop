@@ -4,10 +4,10 @@ import {
   IconLoader2, IconCalendar,
   IconMessageCircle, IconPencil, IconCheck, IconX,
   IconCopy, IconChevronDown, IconLogout, IconSettings, IconUser,
-  IconRefresh, IconPhone, IconArrowsSort, IconTrash,
+  IconRefresh, IconPhone, IconArrowsSort, IconTrash, IconClock, IconFolder,
 } from '@tabler/icons-react'
 import type { Client, ReportStatus, SortOrder } from '../types'
-import { fetchClients, updateKakaoChat, updateReportTemplate, dbToClient } from '../lib/clients'
+import { fetchClients, updateKakaoChat, updateReportTemplate, updateGroupName, dbToClient } from '../lib/clients'
 import type { DbClient } from '../types'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
@@ -114,6 +114,46 @@ function formatDday(dday: number): { text: string; color: string } {
   return { text: `D-${dday}`, color: '#6b6b8a' }
 }
 
+/* ── 앱 설정 ── */
+const SETTINGS_KEY = 'worky:settings'
+const RECENT_KEY   = 'worky:recent'
+
+interface AppSettings {
+  groupingEnabled: boolean
+  recentEnabled: boolean
+  recentMax: number
+}
+
+interface RecentEntry {
+  chatName: string
+  clientName: string
+  openedAt: string
+}
+
+function loadSettings(): AppSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (raw) return { groupingEnabled: false, recentEnabled: true, recentMax: 5, ...JSON.parse(raw) }
+  } catch { /* ignore */ }
+  return { groupingEnabled: false, recentEnabled: true, recentMax: 5 }
+}
+
+function saveSettings(s: AppSettings) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s))
+}
+
+function loadRecent(): RecentEntry[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch { /* ignore */ }
+  return []
+}
+
+function saveRecent(entries: RecentEntry[]) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(entries))
+}
+
 /* ── 토스트 훅 ── */
 function useToast() {
   const [toast, setToast] = useState<{ ok: boolean; msg: string } | null>(null)
@@ -133,12 +173,16 @@ function ClientItem({
   showToast,
   onKakaoChatSaved,
   onReportTemplateSaved,
+  onGroupSaved,
+  onKakaoOpened,
 }: {
   client: Client
   dark: boolean
   showToast: (ok: boolean, msg: string) => void
   onKakaoChatSaved: (id: string, name: string) => void
   onReportTemplateSaved: (id: string, tpl: string) => void
+  onGroupSaved: (id: string, group: string) => void
+  onKakaoOpened: (chatName: string, clientName: string) => void
 }) {
   const p = palette(dark)
   const [expanded, setExpanded] = useState(false)
@@ -152,6 +196,10 @@ function ClientItem({
   const [tplVal, setTplVal] = useState(client.reportTemplate)
   const [copied, setCopied] = useState(false)
   const tplInputRef = useRef<HTMLTextAreaElement>(null)
+
+  const [groupEditing, setGroupEditing] = useState(false)
+  const [groupVal, setGroupVal] = useState(client.groupName)
+  const groupInputRef = useRef<HTMLInputElement>(null)
 
   const cfg = STATUS_CONFIG[client.status]
   const contractEnd = getContractEnd(client)
@@ -169,6 +217,7 @@ function ClientItem({
     const result = await window.electronAPI.kakao.openChat(client.kakaoChat)
     setKakaoLoading(false)
     if (!result.success) showToast(false, result.message)
+    else onKakaoOpened(client.kakaoChat, client.name)
   }
 
   async function handleKakaoSave() {
@@ -193,6 +242,13 @@ function ClientItem({
     setTplVal('')
     setTplEditing(false)
     showToast(false, '템플릿 삭제 완료')
+  }
+
+  async function handleGroupSave() {
+    const group = groupVal.trim()
+    await updateGroupName(client.id, group)
+    onGroupSaved(client.id, group)
+    setGroupEditing(false)
   }
 
   async function handleCopy() {
@@ -401,6 +457,42 @@ function ClientItem({
                 <p className="text-[11px]" style={{ color: p.textMuted }}>등록된 템플릿 없음</p>
               )}
             </div>
+
+            {/* 그룹 */}
+            <div className="flex items-center gap-1.5">
+              <IconFolder size={10} style={{ color: p.textMuted, flexShrink: 0 }} />
+              {groupEditing ? (
+                <>
+                  <input
+                    ref={groupInputRef}
+                    value={groupVal}
+                    onChange={(e) => setGroupVal(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleGroupSave()
+                      if (e.key === 'Escape') { setGroupEditing(false); setGroupVal(client.groupName) }
+                    }}
+                    placeholder="그룹명 입력"
+                    className="flex-1 px-2 py-0.5 rounded text-[11px] focus:outline-none"
+                    style={{ background: p.inputBg, border: `1px solid rgba(108,99,255,0.3)`, color: p.textPrimary }}
+                  />
+                  <button onClick={handleGroupSave} className="flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-semibold shrink-0" style={{ background: '#6C63FF', color: '#fff' }}>
+                    <IconCheck size={9} />저장
+                  </button>
+                  <button onClick={() => { setGroupEditing(false); setGroupVal(client.groupName) }} className="px-2 py-0.5 rounded text-[10px] font-semibold shrink-0" style={{ border: `1px solid ${p.inputBorder}`, color: p.textMuted }}>
+                    취소
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-[11px]" style={{ color: client.groupName ? p.textSub : p.textMuted }}>
+                    {client.groupName || '그룹 없음'}
+                  </span>
+                  <button onClick={() => { setGroupEditing(true); setTimeout(() => groupInputRef.current?.focus(), 50) }} style={{ color: p.textMuted }}>
+                    <IconPencil size={10} />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -420,6 +512,8 @@ export default function ClientsPage({ user }: { user: User }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [themeSource, setThemeSource] = useState<'light' | 'dark' | 'system'>('dark')
   const settingsRef = useRef<HTMLDivElement>(null)
+  const [settings, setSettings] = useState<AppSettings>(loadSettings)
+  const [recentOpens, setRecentOpens] = useState<RecentEntry[]>(loadRecent)
 
   useEffect(() => {
     loadClients()
@@ -476,6 +570,34 @@ export default function ClientsPage({ user }: { user: User }) {
     setClients((prev) => prev.map((c) => c.id === id ? { ...c, reportTemplate: tpl } : c))
   }, [])
 
+  const handleGroupSaved = useCallback((id: string, group: string) => {
+    setClients((prev) => prev.map((c) => c.id === id ? { ...c, groupName: group } : c))
+  }, [])
+
+  const handleKakaoOpened = useCallback((chatName: string, clientName: string) => {
+    setRecentOpens((prev) => {
+      const next = [
+        { chatName, clientName, openedAt: new Date().toISOString() },
+        ...prev.filter((e) => e.chatName !== chatName),
+      ].slice(0, settings.recentMax)
+      saveRecent(next)
+      return next
+    })
+  }, [settings.recentMax])
+
+  function updateSettings(patch: Partial<AppSettings>) {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch }
+      saveSettings(next)
+      return next
+    })
+  }
+
+  async function openRecentChat(chatName: string) {
+    const result = await window.electronAPI.kakao.openChat(chatName)
+    if (!result.success) showToast(false, result.message)
+  }
+
   const filtered = clients.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -503,6 +625,19 @@ export default function ClientsPage({ user }: { user: User }) {
   const cInprogress = clients.filter((c) => c.status === 'inprogress').length
   const cComplete   = clients.filter((c) => c.status === 'complete').length
   const cStopped    = clients.filter((c) => c.status === 'stopped').length
+
+  const groupedList: { label: string; items: Client[] }[] = (() => {
+    if (!settings.groupingEnabled) return [{ label: '', items: sorted }]
+    const map = new Map<string, Client[]>()
+    for (const c of sorted) {
+      const key = c.groupName || '기타'
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(c)
+    }
+    const keys = [...map.keys()].filter((k) => k !== '기타').sort((a, b) => a.localeCompare(b, 'ko'))
+    if (map.has('기타')) keys.push('기타')
+    return keys.map((label) => ({ label, items: map.get(label)! }))
+  })()
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: 'transparent' }}>
@@ -547,6 +682,31 @@ export default function ClientsPage({ user }: { user: User }) {
           </button>
         </div>
 
+        {/* 최근 열기 */}
+        {settings.recentEnabled && recentOpens.length > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center gap-1" style={{ color: p.textMuted }}>
+              <IconClock size={9} />
+              <span className="text-[9px] font-medium uppercase tracking-wider">최근 열기</span>
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+              {recentOpens.slice(0, settings.recentMax).map((e) => (
+                <button
+                  key={e.chatName}
+                  onClick={() => openRecentChat(e.chatName)}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] shrink-0 transition-colors"
+                  style={{ background: p.tagBg, color: p.tagText }}
+                  onMouseEnter={(ev) => { ev.currentTarget.style.background = 'rgba(108,99,255,0.20)' }}
+                  onMouseLeave={(ev) => { ev.currentTarget.style.background = p.tagBg }}
+                >
+                  <IconMessageCircle size={9} />
+                  {e.clientName}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 프로그레스 바 */}
         <div className="flex items-center gap-2">
           <div className="flex-1 h-[2px] rounded-full overflow-hidden flex" style={{ background: p.divider }}>
@@ -574,15 +734,29 @@ export default function ClientsPage({ user }: { user: User }) {
             <p className="text-[12px]">{search ? '검색 결과 없음' : '등록된 거래처 없음'}</p>
           </div>
         ) : (
-          sorted.map((c) => (
-            <ClientItem
-              key={c.id}
-              client={c}
-              dark={dark}
-              showToast={showToast}
-              onKakaoChatSaved={handleKakaoChatSaved}
-              onReportTemplateSaved={handleReportTemplateSaved}
-            />
+          groupedList.map(({ label, items }) => (
+            <div key={label || '_all'}>
+              {label && (
+                <div className="flex items-center gap-1.5 px-1 py-1 mt-1">
+                  <IconFolder size={9} style={{ color: p.textMuted }} />
+                  <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: p.textMuted }}>{label}</span>
+                </div>
+              )}
+              <div className="space-y-1">
+                {items.map((c) => (
+                  <ClientItem
+                    key={c.id}
+                    client={c}
+                    dark={dark}
+                    showToast={showToast}
+                    onKakaoChatSaved={handleKakaoChatSaved}
+                    onReportTemplateSaved={handleReportTemplateSaved}
+                    onGroupSaved={handleGroupSaved}
+                    onKakaoOpened={handleKakaoOpened}
+                  />
+                ))}
+              </div>
+            </div>
           ))
         )}
       </div>
@@ -610,9 +784,10 @@ export default function ClientsPage({ user }: { user: User }) {
 
           {settingsOpen && (
             <div
-              className="absolute bottom-full right-0 mb-1 rounded-xl shadow-2xl overflow-hidden min-w-[156px] z-50"
+              className="absolute bottom-full right-0 mb-1 rounded-xl shadow-2xl overflow-hidden min-w-[180px] z-50"
               style={{ background: p.popupBg, border: `1px solid ${p.popupBorder}` }}
             >
+              {/* 테마 */}
               <div className="px-3 py-2" style={{ borderBottom: `1px solid ${p.divider}` }}>
                 <p className="text-[10px] font-medium uppercase tracking-wider mb-1.5" style={{ color: p.textMuted }}>테마</p>
                 <div className="flex gap-1">
@@ -631,6 +806,61 @@ export default function ClientsPage({ user }: { user: User }) {
                   ))}
                 </div>
               </div>
+
+              {/* 기능 설정 */}
+              <div className="px-3 py-2 space-y-2" style={{ borderBottom: `1px solid ${p.divider}` }}>
+                <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: p.textMuted }}>기능</p>
+
+                {/* 그룹핑 토글 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px]" style={{ color: p.textSub }}>거래처 그룹핑</span>
+                  <button
+                    onClick={() => updateSettings({ groupingEnabled: !settings.groupingEnabled })}
+                    className="relative w-8 h-4 rounded-full transition-colors shrink-0"
+                    style={{ background: settings.groupingEnabled ? '#6C63FF' : p.inputBorder }}
+                  >
+                    <span
+                      className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
+                      style={{ left: settings.groupingEnabled ? '17px' : '2px' }}
+                    />
+                  </button>
+                </div>
+
+                {/* 최근 열기 토글 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px]" style={{ color: p.textSub }}>최근 열기 목록</span>
+                  <button
+                    onClick={() => updateSettings({ recentEnabled: !settings.recentEnabled })}
+                    className="relative w-8 h-4 rounded-full transition-colors shrink-0"
+                    style={{ background: settings.recentEnabled ? '#6C63FF' : p.inputBorder }}
+                  >
+                    <span
+                      className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
+                      style={{ left: settings.recentEnabled ? '17px' : '2px' }}
+                    />
+                  </button>
+                </div>
+
+                {/* 최근 열기 개수 */}
+                {settings.recentEnabled && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px]" style={{ color: p.textMuted }}>목록 개수</span>
+                      <span className="text-[10px] font-semibold" style={{ color: '#9B8FFF' }}>{settings.recentMax}개</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={5}
+                      max={20}
+                      value={settings.recentMax}
+                      onChange={(e) => updateSettings({ recentMax: Number(e.target.value) })}
+                      className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                      style={{ accentColor: '#6C63FF' }}
+                    />
+                  </div>
+                )}
+              </div>
+
               <button
                 className="flex items-center gap-2 w-full px-3 py-2.5 text-[11px] transition-colors"
                 style={{ color: '#ef4444' }}
