@@ -183,6 +183,7 @@ function ClientItem({
     await updateReportTemplate(client.id, tpl)
     onReportTemplateSaved(client.id, tpl)
     setTplEditing(false)
+    showToast(true, '템플릿 저장 완료')
   }
 
   async function handleTplDelete() {
