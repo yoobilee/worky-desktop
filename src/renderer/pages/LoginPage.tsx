@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconBrandGoogle, IconBriefcase, IconLoader2 } from '@tabler/icons-react'
+import { IconBrandGoogle, IconLoader2 } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { useDark } from '../hooks/useDark'
 
@@ -52,12 +52,7 @@ export default function LoginPage() {
         {/* 로고 + 타이틀 */}
         <div className="text-center mb-10">
           <div className="flex items-center justify-center mb-5">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)' }}
-            >
-              <IconBriefcase size={32} color="white" />
-            </div>
+            <img src="/icon.png" width={64} height={64} className="rounded-2xl shadow-lg" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: textPrimary }}>WORKY mini</h1>
           <p className="text-sm mt-2" style={{ color: textSub }}>거래처 관리를 더 스마트하게</p>
