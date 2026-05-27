@@ -1,10 +1,19 @@
 import { useState } from 'react'
 import { IconBrandGoogle, IconBriefcase, IconLoader2 } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
+import { useDark } from '../hooks/useDark'
 
 export default function LoginPage() {
+  const dark = useDark()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const bg          = dark ? '#080810' : '#efefff'
+  const textPrimary = dark ? '#ffffff' : '#1a1a2e'
+  const textSub     = dark ? '#a0a0c0' : '#4a4a6a'
+  const textMuted   = dark ? '#6a6a8a' : '#9090b0'
+  const card        = dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.55)'
+  const cardBorder  = dark ? 'rgba(255,255,255,0.10)' : 'rgba(108,99,255,0.18)'
 
   async function handleGoogleLogin() {
     setLoading(true)
@@ -30,8 +39,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-full w-full flex items-center justify-center bg-slate-900">
-      <div className="w-full max-w-sm px-6">
+    <div className="h-full w-full flex items-center justify-center relative overflow-hidden" style={{ background: bg }}>
+      {/* 배경 블롭 */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute top-[-60px] left-[-60px] w-[260px] h-[260px] rounded-full opacity-20 blur-3xl"
+          style={{ background: dark ? '#6C63FF' : '#a09aff' }} />
+        <div className="absolute bottom-[-40px] right-[-40px] w-[200px] h-[200px] rounded-full opacity-15 blur-3xl"
+          style={{ background: dark ? '#8B85FF' : '#c4c0ff' }} />
+      </div>
+
+      <div className="relative w-full max-w-sm px-6">
+        {/* 로고 + 타이틀 */}
         <div className="text-center mb-10">
           <div className="flex items-center justify-center mb-5">
             <div
@@ -41,28 +59,40 @@ export default function LoginPage() {
               <IconBriefcase size={32} color="white" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-100">WORKY mini</h1>
-          <p className="text-slate-400 text-sm mt-2">거래처 관리를 더 스마트하게</p>
+          <h1 className="text-2xl font-bold" style={{ color: textPrimary }}>WORKY mini</h1>
+          <p className="text-sm mt-2" style={{ color: textSub }}>거래처 관리를 더 스마트하게</p>
         </div>
 
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl bg-white text-slate-800 text-sm font-semibold hover:bg-slate-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+        {/* 카드 */}
+        <div
+          className="rounded-2xl p-5 backdrop-blur-md"
+          style={{ background: card, border: `1px solid ${cardBorder}` }}
         >
-          {loading ? (
-            <IconLoader2 size={18} className="animate-spin" />
-          ) : (
-            <IconBrandGoogle size={18} />
+          <button
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+            style={{
+              background: dark ? 'rgba(255,255,255,0.92)' : '#ffffff',
+              color: '#1a1a2e',
+            }}
+            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = dark ? '#ffffff' : '#f0f0ff' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.92)' : '#ffffff' }}
+          >
+            {loading ? (
+              <IconLoader2 size={18} className="animate-spin" />
+            ) : (
+              <IconBrandGoogle size={18} />
+            )}
+            Google로 로그인
+          </button>
+
+          {error && (
+            <p className="mt-3 text-center text-xs" style={{ color: dark ? '#f87171' : '#dc2626' }}>{error}</p>
           )}
-          Google로 로그인
-        </button>
+        </div>
 
-        {error && (
-          <p className="mt-4 text-center text-xs text-red-400">{error}</p>
-        )}
-
-        <p className="mt-6 text-center text-xs text-slate-600">
+        <p className="mt-5 text-center text-xs" style={{ color: textMuted }}>
           로그인하면 브라우저가 열립니다.<br />
           인증 완료 후 앱으로 자동 복귀됩니다.
         </p>
