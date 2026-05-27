@@ -7,7 +7,8 @@ import {
   IconRefresh, IconPhone, IconArrowsSort, IconTrash,
 } from '@tabler/icons-react'
 import type { Client, ReportStatus, SortOrder } from '../types'
-import { fetchClients, updateKakaoChat, updateReportTemplate } from '../lib/clients'
+import { fetchClients, updateKakaoChat, updateReportTemplate, dbToClient } from '../lib/clients'
+import type { DbClient } from '../types'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useDark } from '../hooks/useDark'
@@ -423,6 +424,25 @@ export default function ClientsPage({ user }: { user: User }) {
   useEffect(() => {
     loadClients()
     window.electronAPI.theme.get().then(({ source }) => setThemeSource(source))
+
+    const channel = supabase
+      .channel('clients-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clients', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setClients((prev) => [...prev, dbToClient(payload.new as DbClient)])
+          } else if (payload.eventType === 'UPDATE') {
+            setClients((prev) => prev.map((c) => c.id === (payload.new as DbClient).id ? dbToClient(payload.new as DbClient) : c))
+          } else if (payload.eventType === 'DELETE') {
+            setClients((prev) => prev.filter((c) => c.id !== (payload.old as DbClient).id))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [user.id])
 
   useEffect(() => {
