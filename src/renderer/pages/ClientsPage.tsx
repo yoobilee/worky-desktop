@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import {
   IconBuilding, IconSearch,
   IconLoader2, IconCalendar,
@@ -130,11 +129,13 @@ function useToast() {
 function ClientItem({
   client,
   dark,
+  showToast,
   onKakaoChatSaved,
   onReportTemplateSaved,
 }: {
   client: Client
   dark: boolean
+  showToast: (ok: boolean, msg: string) => void
   onKakaoChatSaved: (id: string, name: string) => void
   onReportTemplateSaved: (id: string, tpl: string) => void
 }) {
@@ -150,8 +151,6 @@ function ClientItem({
   const [tplVal, setTplVal] = useState(client.reportTemplate)
   const [copied, setCopied] = useState(false)
   const tplInputRef = useRef<HTMLTextAreaElement>(null)
-
-  const { toast, show: showToast } = useToast()
 
   const cfg = STATUS_CONFIG[client.status]
   const contractEnd = getContractEnd(client)
@@ -218,21 +217,6 @@ function ClientItem({
 
   return (
     <div className="relative">
-      {toast && createPortal(
-        <div
-          className="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] px-4 py-1.5 rounded-lg text-[11px] font-medium text-center pointer-events-none shadow-lg whitespace-nowrap"
-          style={{
-            animation: 'slideDown 0.2s ease',
-            ...(toast.ok
-              ? { background: dark ? '#0d2018' : '#d1fae5', color: dark ? '#4ade80' : '#15803d', border: '1px solid rgba(34,197,94,0.3)' }
-              : { background: dark ? '#1f0d0d' : '#fee2e2', color: dark ? '#f87171' : '#dc2626', border: '1px solid rgba(239,68,68,0.3)' })
-          }}
-        >
-          {toast.msg}
-        </div>,
-        document.body
-      )}
-
       <div
         className="relative overflow-hidden rounded-2xl transition-all duration-200"
         style={{
@@ -425,6 +409,7 @@ function ClientItem({
 export default function ClientsPage({ user }: { user: User }) {
   const dark = useDark()
   const p = palette(dark)
+  const { toast, show: showToast } = useToast()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -499,6 +484,19 @@ export default function ClientsPage({ user }: { user: User }) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: 'transparent' }}>
+      {toast && (
+        <div
+          className="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] px-4 py-1.5 rounded-lg text-[11px] font-medium text-center pointer-events-none shadow-lg whitespace-nowrap"
+          style={{
+            animation: 'slideDown 0.2s ease',
+            ...(toast.ok
+              ? { background: dark ? '#0d2018' : '#d1fae5', color: dark ? '#4ade80' : '#15803d', border: '1px solid rgba(34,197,94,0.3)' }
+              : { background: dark ? '#1f0d0d' : '#fee2e2', color: dark ? '#f87171' : '#dc2626', border: '1px solid rgba(239,68,68,0.3)' })
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
       {/* 헤더 */}
       <div className="px-3 pt-2.5 pb-2 shrink-0 space-y-2">
         <div className="flex items-center gap-1.5">
@@ -559,6 +557,7 @@ export default function ClientsPage({ user }: { user: User }) {
               key={c.id}
               client={c}
               dark={dark}
+              showToast={showToast}
               onKakaoChatSaved={handleKakaoChatSaved}
               onReportTemplateSaved={handleReportTemplateSaved}
             />
