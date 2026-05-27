@@ -24,10 +24,12 @@ function startCallbackServer() {
 
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
       res.end(
-        `<html><head><meta charset="utf-8"></head><body>` +
-        `<script>window.close()</script>` +
-        `<p style="font-family:sans-serif;text-align:center;margin-top:40px">` +
-        `로그인 완료! 이 창이 자동으로 닫힙니다.</p></body></html>`
+        `<html><head><meta charset="utf-8"></head>` +
+        `<body style="font-family:sans-serif;text-align:center;padding:60px;background:#f4f4ff;color:#1a1a2e">` +
+        `<div style="font-size:48px;margin-bottom:16px">✅</div>` +
+        `<h2 style="margin:0 0 8px">로그인 완료!</h2>` +
+        `<p style="color:#6b6b8a;margin:0">이 탭을 닫고 WORKY mini로 돌아가세요.</p>` +
+        `</body></html>`
       )
 
       if (code) {
