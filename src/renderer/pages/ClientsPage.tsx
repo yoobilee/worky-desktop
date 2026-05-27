@@ -191,7 +191,7 @@ function ClientItem({
     onReportTemplateSaved(client.id, '')
     setTplVal('')
     setTplEditing(false)
-    showToast(false, '템플릿 삭제됨')
+    showToast(false, '템플릿 삭제 완료')
   }
 
   async function handleCopy() {
