@@ -41,21 +41,18 @@ export default function TitleBar() {
         </span>
       </div>
 
-      <div className="no-drag flex items-center h-full">
-        <button
-          onClick={togglePin}
-          className="flex items-center justify-center w-7 h-full transition-colors"
-          style={{ color: pinned ? '#6C63FF' : textColor }}
-          title={pinned ? '고정 해제' : '항상 위에 고정'}
-          onMouseEnter={(e) => { if (!pinned) { e.currentTarget.style.background = hoverBg; e.currentTarget.style.color = dark ? 'rgba(255,255,255,0.65)' : 'rgba(26,26,46,0.8)' } }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = pinned ? '#6C63FF' : textColor }}
-        >
-          {pinned ? <IconPinnedFilled size={11} /> : <IconPin size={11} />}
-        </button>
-      </div>
-
       {isWin && (
         <div className="no-drag flex items-center h-full">
+          <button
+            onClick={togglePin}
+            className="flex items-center justify-center w-7 h-full transition-colors"
+            style={{ color: pinned ? '#6C63FF' : textColor }}
+            title={pinned ? '고정 해제' : '항상 위에 고정'}
+            onMouseEnter={(e) => { if (!pinned) { e.currentTarget.style.background = hoverBg; e.currentTarget.style.color = dark ? 'rgba(255,255,255,0.65)' : 'rgba(26,26,46,0.8)' } }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = pinned ? '#6C63FF' : textColor }}
+          >
+            {pinned ? <IconPinnedFilled size={11} /> : <IconPin size={11} />}
+          </button>
           <button
             onClick={() => window.electronAPI.windowControls.minimize()}
             className="flex items-center justify-center w-8 h-full transition-colors"
