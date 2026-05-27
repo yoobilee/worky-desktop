@@ -21,15 +21,21 @@ Worky 웹과 연동되는 Windows 데스크탑 앱입니다.
 
 ## 기술 스택
 
-| 항목 | 내용 |
-|------|------|
-| Framework | Electron + React |
-| Language | TypeScript |
-| Bundler | Vite |
-| Styling | Tailwind CSS |
-| DB | Supabase (Worky 웹과 공유) |
-| 인증 | Google OAuth |
-| 아이콘 | Tabler Icons |
+**Frontend**  
+![Electron](https://img.shields.io/badge/Electron-47848F?style=flat-square&logo=electron&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+
+**빌드**  
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
+
+**인증 / DB**  
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Google OAuth](https://img.shields.io/badge/Google_OAuth-4285F4?style=flat-square&logo=google&logoColor=white)
+
+**플랫폼**  
+![Windows](https://img.shields.io/badge/Windows-0078D4?style=flat-square&logo=windows&logoColor=white)
 
 ---
 
