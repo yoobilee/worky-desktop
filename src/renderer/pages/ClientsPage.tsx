@@ -376,20 +376,9 @@ function ClientItem({
                       </button>
                     </>
                   ) : (
-                    <>
-                      {client.reportTemplate && (
-                        <button
-                          onClick={handleTplDelete}
-                          style={{ color: p.textMuted }}
-                          title="템플릿 삭제"
-                        >
-                          <IconTrash size={10} />
-                        </button>
-                      )}
-                      <button onClick={() => { setTplEditing(true); setTimeout(() => tplInputRef.current?.focus(), 50) }} style={{ color: p.textMuted }}>
-                        <IconPencil size={10} />
-                      </button>
-                    </>
+                    <button onClick={() => { setTplEditing(true); setTimeout(() => tplInputRef.current?.focus(), 50) }} style={{ color: p.textMuted }}>
+                      <IconPencil size={10} />
+                    </button>
                   )}
                 </div>
               </div>
@@ -406,7 +395,17 @@ function ClientItem({
                   onBlur={(e) => { e.currentTarget.style.borderColor = p.inputBorder }}
                 />
               ) : client.reportTemplate ? (
-                <p className="text-[11px] leading-relaxed line-clamp-3 whitespace-pre-wrap" style={{ color: p.textSub }}>{client.reportTemplate}</p>
+                <div className="group relative">
+                  <p className="text-[11px] leading-relaxed line-clamp-3 whitespace-pre-wrap pr-5" style={{ color: p.textSub }}>{client.reportTemplate}</p>
+                  <button
+                    onClick={handleTplDelete}
+                    className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: p.textMuted }}
+                    title="템플릿 삭제"
+                  >
+                    <IconTrash size={10} />
+                  </button>
+                </div>
               ) : (
                 <p className="text-[11px]" style={{ color: p.textMuted }}>등록된 템플릿 없음</p>
               )}
