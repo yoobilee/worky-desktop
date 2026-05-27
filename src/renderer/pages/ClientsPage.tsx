@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
   IconBuilding, IconSearch,
   IconLoader2, IconCalendar,
@@ -217,7 +218,7 @@ function ClientItem({
 
   return (
     <div className="relative">
-      {toast && (
+      {toast && createPortal(
         <div
           className="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] px-4 py-1.5 rounded-lg text-[11px] font-medium text-center pointer-events-none shadow-lg whitespace-nowrap"
           style={{
@@ -228,7 +229,8 @@ function ClientItem({
           }}
         >
           {toast.msg}
-        </div>
+        </div>,
+        document.body
       )}
 
       <div
