@@ -42,6 +42,6 @@ export interface DbClient {
   group_name: string | null
 }
 
-export type SortOrder = 'inprogress' | 'pending' | 'expiry' | 'name'
+export type SortOrder = 'inprogress' | 'pending' | 'expiry' | 'name_asc' | 'name_desc'
 
 export type Page = 'clients' | 'settings'

@@ -80,9 +80,10 @@ const SORT_LABELS: Record<SortOrder, string> = {
   inprogress: '진행 중 우선',
   pending:    '대기 중 우선',
   expiry:     '만료 임박순',
-  name:       '거래처명순',
+  name_asc:   '거래처명 ↑',
+  name_desc:  '거래처명 ↓',
 }
-const SORT_CYCLE: SortOrder[] = ['inprogress', 'pending', 'expiry', 'name']
+const SORT_CYCLE: SortOrder[] = ['inprogress', 'pending', 'expiry', 'name_asc', 'name_desc']
 
 /* ── 헬퍼 ── */
 function addBusinessDays(start: string, days: number): string {
@@ -619,6 +620,7 @@ export default function ClientsPage({ user }: { user: User }) {
       if (!ea) return 1; if (!eb) return -1
       if (ea !== eb) return ea.localeCompare(eb)
     }
+    if (sortOrder === 'name_desc') return b.name.localeCompare(a.name, 'ko')
     return a.name.localeCompare(b.name, 'ko')
   })
 
