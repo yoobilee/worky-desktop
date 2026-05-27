@@ -1,9 +1,21 @@
-import { IconMinus, IconX } from '@tabler/icons-react'
+import { useState, useEffect } from 'react'
+import { IconMinus, IconX, IconPin, IconPinnedFilled } from '@tabler/icons-react'
 import { useDark } from '../hooks/useDark'
 
 export default function TitleBar() {
   const isWin = window.electronAPI.platform === 'win32'
   const dark = useDark()
+  const [pinned, setPinned] = useState(false)
+
+  useEffect(() => {
+    window.electronAPI.windowControls.getPin().then(setPinned)
+  }, [])
+
+  async function togglePin() {
+    const next = !pinned
+    await window.electronAPI.windowControls.pin(next)
+    setPinned(next)
+  }
 
   const textColor = dark ? 'rgba(255,255,255,0.25)' : 'rgba(26,26,46,0.5)'
   const hoverBg   = dark ? 'rgba(255,255,255,0.05)' : 'rgba(26,26,46,0.06)'
@@ -27,6 +39,19 @@ export default function TitleBar() {
         >
           WORKY mini
         </span>
+      </div>
+
+      <div className="no-drag flex items-center h-full">
+        <button
+          onClick={togglePin}
+          className="flex items-center justify-center w-7 h-full transition-colors"
+          style={{ color: pinned ? '#6C63FF' : textColor }}
+          title={pinned ? '고정 해제' : '항상 위에 고정'}
+          onMouseEnter={(e) => { if (!pinned) { e.currentTarget.style.background = hoverBg; e.currentTarget.style.color = dark ? 'rgba(255,255,255,0.65)' : 'rgba(26,26,46,0.8)' } }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = pinned ? '#6C63FF' : textColor }}
+        >
+          {pinned ? <IconPinnedFilled size={11} /> : <IconPin size={11} />}
+        </button>
       </div>
 
       {isWin && (

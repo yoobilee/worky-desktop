@@ -61,6 +61,8 @@ ipcMain.handle('theme:get', () => ({
 }))
 ipcMain.handle('kakao:is-running', () => isKakaoRunning())
 ipcMain.handle('kakao:launch', () => launchKakao())
+ipcMain.handle('window:pin', (_e, pinned: boolean) => mainWindow?.setAlwaysOnTop(pinned))
+ipcMain.handle('window:get-pin', () => mainWindow?.isAlwaysOnTop() ?? false)
 
 
 // Windows: deep link via second instance

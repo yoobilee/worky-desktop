@@ -8,6 +8,8 @@ declare global {
         minimize: () => void
         maximize: () => void
         close: () => void
+        pin: (pinned: boolean) => Promise<void>
+        getPin: () => Promise<boolean>
       }
       openExternal: (url: string) => void
       onDeepLink: (callback: (url: string) => void) => void

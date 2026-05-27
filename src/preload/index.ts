@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
+    pin: (pinned: boolean): Promise<void> => ipcRenderer.invoke('window:pin', pinned),
+    getPin: (): Promise<boolean> => ipcRenderer.invoke('window:get-pin'),
   },
   openExternal: (url: string) => ipcRenderer.send('open-external', url),
   onDeepLink: (callback: (url: string) => void) => {
