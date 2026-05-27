@@ -512,8 +512,10 @@ export default function ClientsPage({ user }: { user: User }) {
   const [search, setSearch] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('inprogress')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [sortOpen, setSortOpen] = useState(false)
   const [themeSource, setThemeSource] = useState<'light' | 'dark' | 'system'>('dark')
   const settingsRef = useRef<HTMLDivElement>(null)
+  const sortRef = useRef<HTMLDivElement>(null)
   const [settings, setSettings] = useState<AppSettings>(loadSettings)
   const [recentOpens, setRecentOpens] = useState<RecentEntry[]>(loadRecent)
 
@@ -550,6 +552,16 @@ export default function ClientsPage({ user }: { user: User }) {
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [settingsOpen])
+
+  useEffect(() => {
+    if (!sortOpen) return
+    const h = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node))
+        setSortOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [sortOpen])
 
   async function loadClients() {
     setLoading(true)
@@ -672,14 +684,35 @@ export default function ClientsPage({ user }: { user: User }) {
               onBlur={(e) => { e.currentTarget.style.borderColor = p.inputBorder }}
             />
           </div>
-          <button
-            onClick={() => setSortOrder((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length])}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap"
-            style={{ background: p.inputBg, border: `1px solid ${p.inputBorder}`, color: p.textSub }}
-          >
-            <IconArrowsSort size={10} />
-            {SORT_LABELS[sortOrder]}
-          </button>
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => setSortOpen((v) => !v)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap"
+              style={{ background: sortOpen ? 'rgba(108,99,255,0.15)' : p.inputBg, border: `1px solid ${sortOpen ? 'rgba(108,99,255,0.4)' : p.inputBorder}`, color: sortOpen ? '#9B8FFF' : p.textSub }}
+            >
+              <IconArrowsSort size={10} />
+              {SORT_LABELS[sortOrder]}
+            </button>
+            {sortOpen && (
+              <div
+                className="absolute top-full left-0 mt-1 rounded-xl shadow-2xl overflow-hidden z-50 min-w-[130px]"
+                style={{ background: p.popupBg, border: `1px solid ${p.popupBorder}` }}
+              >
+                {SORT_CYCLE.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => { setSortOrder(s); setSortOpen(false) }}
+                    className="flex items-center w-full px-3 py-2 text-[11px] transition-colors"
+                    style={{ color: sortOrder === s ? '#9B8FFF' : p.textSub, background: sortOrder === s ? 'rgba(108,99,255,0.12)' : 'transparent' }}
+                    onMouseEnter={(e) => { if (sortOrder !== s) e.currentTarget.style.background = p.inputBg }}
+                    onMouseLeave={(e) => { if (sortOrder !== s) e.currentTarget.style.background = 'transparent' }}
+                  >
+                    {SORT_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={loadClients} className="flex items-center justify-center w-7 h-7 rounded-full transition-colors" style={{ color: p.textMuted }}>
             <IconRefresh size={12} />
           </button>
