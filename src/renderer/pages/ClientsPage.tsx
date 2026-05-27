@@ -666,7 +666,9 @@ export default function ClientsPage({ user }: { user: User }) {
               : { background: dark ? '#1f0d0d' : '#fee2e2', color: dark ? '#f87171' : '#dc2626', border: '1px solid rgba(239,68,68,0.3)' })
           }}
         >
-          {toast.msg}
+          {toast.msg.replace(/\. /g, '.\n').split('\n').map((line, i, arr) =>
+            i < arr.length - 1 ? <span key={i}>{line}<br /></span> : <span key={i}>{line}</span>
+          )}
         </div>
       )}
       {/* 헤더 */}
