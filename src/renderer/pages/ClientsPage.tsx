@@ -741,8 +741,8 @@ export default function ClientsPage({ user }: { user: User }) {
                   onMouseEnter={(ev) => { ev.currentTarget.style.background = dark ? 'rgba(255,255,255,0.15)' : 'rgba(108,99,255,0.22)' }}
                   onMouseLeave={(ev) => { ev.currentTarget.style.background = dark ? 'rgba(255,255,255,0.10)' : 'rgba(108,99,255,0.15)' }}
                 >
-                  <IconMessageCircle size={9} />
-                  {e.clientName}
+                  <IconMessageCircle size={9} className="shrink-0" />
+                  <span className="max-w-[100px] truncate" title={e.clientName}>{e.clientName}</span>
                 </button>
               ))}
             </div>
