@@ -487,7 +487,7 @@ export default function ClientsPage({ user }: { user: User }) {
     <div className="flex flex-col h-full overflow-hidden" style={{ background: 'transparent' }}>
       {toast && (
         <div
-          className="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] px-4 py-1.5 rounded-lg text-[11px] font-medium text-center pointer-events-none shadow-lg whitespace-nowrap"
+          className="fixed top-10 left-1/2 -translate-x-1/2 z-[9999] px-4 py-1.5 rounded-lg text-[11px] font-medium text-center pointer-events-none shadow-lg whitespace-nowrap"
           style={{
             animation: 'slideDown 0.2s ease',
             ...(toast.ok
