@@ -80,8 +80,8 @@ const SORT_LABELS: Record<SortOrder, string> = {
   inprogress: '진행 중 우선',
   pending:    '대기 중 우선',
   expiry:     '만료 임박순',
-  name_asc:   '거래처명 가-하',
-  name_desc:  '거래처명 하-가',
+  name_asc:   '거래처명 ㄱ→ㅎ',
+  name_desc:  '거래처명 ㅎ→ㄱ',
 }
 const SORT_CYCLE: SortOrder[] = ['inprogress', 'pending', 'expiry', 'name_asc', 'name_desc']
 
