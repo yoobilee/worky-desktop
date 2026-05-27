@@ -30,7 +30,10 @@ function createWindow() {
     show: false,
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show()
+    if (!app.isPackaged) mainWindow?.webContents.openDevTools()
+  })
 
   const SNAP = 20
   mainWindow.on('move', () => {
